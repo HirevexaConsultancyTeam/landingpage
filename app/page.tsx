@@ -343,7 +343,7 @@ export default function HomePage() {
             </div>
             <div className="text-4xl text-[#FF9900]/30 font-serif leading-none mb-4">&ldquo;</div>
             <p className="text-gray-200 text-base sm:text-lg leading-relaxed mb-4">
-              At HireVexa, our vision has always been simple — bridge the gap between education and employment.
+              At HireVexa, our vision has always been one — bridge the gap between education and employment.
               Every year thousands of talented graduates struggle not because they lack potential, but because
               they lack guidance, opportunities, and industry exposure.
             </p>
