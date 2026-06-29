@@ -1,0 +1,316 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String       @id @default(cuid())
+  email       String       @unique
+  mobile      String?      @unique
+  password    String
+  role        Role         @default(CANDIDATE)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  candidate   Candidate?
+  enrollments Enrollment[]
+  orders      Order[]
+  reviews     Review[]
+}
+
+model Candidate {
+  id           String          @id @default(cuid())
+  userId       String          @unique
+  firstName    String
+  lastName     String
+  city         String?
+  degree       String?
+  branch       String?
+  college      String?
+  gradYear     String?
+  cgpa         String?
+  experience   String          @default("fresher")
+  jobType      String?
+  locations    String[]
+  salary       String?
+  skills       String[]
+  profileScore Int             @default(0)
+  status       CandidateStatus @default(ONBOARDING)
+  counsellorId String?
+  resumeUrl    String?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  applications Application[]
+  user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  documents    Document[]
+}
+
+model Job {
+  id           String           @id @default(cuid())
+  company      String
+  role         String
+  location     String?
+  jobType      JobType?
+  experience   ExperienceLevel?
+  salary       String?
+  openings     Int              @default(1)
+  skills       String[]
+  description  String?
+  deadline     DateTime?
+  isActive     Boolean          @default(true)
+  createdAt    DateTime         @default(now())
+  applications Application[]
+}
+
+model Application {
+  id              String    @id @default(cuid())
+  candidateId     String
+  jobId           String
+  status          AppStatus @default(APPLIED)
+  appliedAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  interviewDate   DateTime?
+  notes           String?
+  offerSalary     String?
+  rejectionReason String?
+  candidate       Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  job             Job       @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@unique([candidateId, jobId])
+}
+
+model Document {
+  id          String    @id @default(cuid())
+  candidateId String
+  name        String
+  type        String
+  url         String
+  status      DocStatus @default(UPLOADED)
+  uploadedAt  DateTime  @default(now())
+  candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+}
+
+model Category {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt @db.Timestamp(6)
+  courses   Course[]
+}
+
+model Course {
+  id               String         @id @default(cuid())
+  title            String
+  slug             String         @unique
+  shortDescription String
+  description      String
+  thumbnail        String?
+  previewVideo     String?
+  language         String
+  duration         String?
+  level            CourseLevel
+  price            Float
+  discount         Float          @default(0)
+  featured         Boolean        @default(false)
+  published        Boolean        @default(false)
+  instructor       String?
+  categoryId       String?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  thumbnailUrl     String?
+  previewVideoUrl  String?
+  category         Category?      @relation(fields: [categoryId], references: [id])
+  modules          CourseModule[]
+  enrollments      Enrollment[]
+  orders           Order[]
+  reviews          Review[]
+}
+
+model CourseModule {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  order       Int
+  courseId    String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lessons     Lesson[]
+
+  @@index([courseId])
+}
+
+model Lesson {
+  id          String           @id @default(cuid())
+  title       String
+  description String?
+  videoUrl    String?
+  notesUrl    String?
+  duration    String?
+  isPreview   Boolean          @default(false)
+  order       Int
+  moduleId    String
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  resources   CourseResource[]
+  module      CourseModule     @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+
+  @@index([moduleId])
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  email     String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model Enrollment {
+  id          String    @id @default(cuid())
+  userId      String
+  courseId    String
+  enrolledAt  DateTime  @default(now())
+  progress    Float     @default(0)
+  completed   Boolean   @default(false)
+  completedAt DateTime?
+  course      Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, courseId])
+  @@index([userId])
+  @@index([courseId])
+}
+
+model Order {
+  id              String      @id @default(cuid())
+  userId          String
+  courseId        String
+  amount          Float
+  status          OrderStatus @default(CREATED)
+  razorpayOrderId String?     @unique
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  course          Course      @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  payment         Payment?
+
+  @@index([userId])
+  @@index([courseId])
+}
+
+model Payment {
+  id                String        @id @default(cuid())
+  orderId           String        @unique
+  razorpayPaymentId String?       @unique
+  razorpaySignature String?
+  amount            Float
+  status            PaymentStatus @default(PENDING)
+  paidAt            DateTime?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  order             Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  userId    String
+  courseId  String
+  rating    Int
+  comment   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, courseId])
+  @@index([courseId])
+}
+
+model CourseResource {
+  id        String   @id @default(cuid())
+  title     String
+  url       String
+  type      String
+  lessonId  String
+  createdAt DateTime @default(now())
+  lesson    Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@index([lessonId])
+}
+
+model playing_with_neon {
+  id    Int    @id @default(autoincrement())
+  name  String
+  value Float? @db.Real
+}
+
+enum Role {
+  CANDIDATE
+  ADMIN
+  COUNSELLOR
+}
+
+enum CandidateStatus {
+  ONBOARDING
+  RESUME_REVIEW
+  INTERVIEW_STAGE
+  OFFER_RECEIVED
+  PLACED
+}
+
+enum AppStatus {
+  APPLIED
+  UNDER_REVIEW
+  INTERVIEW_SCHEDULED
+  OFFER_RECEIVED
+  REJECTED
+  PLACED
+}
+
+enum DocStatus {
+  UPLOADED
+  APPROVED
+  REJECTED
+  PENDING
+}
+
+enum JobType {
+  FULL_TIME
+  INTERNSHIP
+  PART_TIME
+  CONTRACT
+  FREELANCE
+}
+
+enum ExperienceLevel {
+  FRESHER
+  ONE_TO_THREE
+  THREE_TO_FIVE
+  FIVE_PLUS
+}
+
+enum CourseLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+enum OrderStatus {
+  CREATED
+  PAID
+  CANCELLED
+  FAILED
+  REFUNDED
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  REFUNDED
+}

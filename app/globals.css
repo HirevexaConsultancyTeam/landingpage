@@ -1,0 +1,83 @@
+@import "tailwindcss";
+
+:root {
+  --amazon-orange: #FF9900;
+  --amazon-dark: #131921;
+  --amazon-navy: #232F3E;
+  --amazon-light-blue: #37475A;
+  --amazon-link: #007185;
+  --amazon-hover: #C7511F;
+  --amazon-yellow: #FFD814;
+  --amazon-green: #067D62;
+  --text-primary: #0F1111;
+  --text-secondary: #565959;
+  --border: #DDD;
+  --bg-light: #F0F2F2;
+  --bg-white: #FFFFFF;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: -apple-system, "Amazon Ember", Arial, sans-serif;
+  color: #0F1111;
+  background: #EAEDED;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
+/* Smooth Infinite Logo Marquee */
+
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+.animate-marquee { animation: marquee 30s linear infinite; }
+
+.animate-marquee {
+  display: flex;
+  width: max-content;
+  will-change: transform;
+  animation: marquee 30s linear infinite;
+}
+
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+
+/* Optional utility classes */
+
+.logo-card {
+  transition: all 0.3s ease;
+}
+
+.logo-card:hover {
+  transform: translateY(-4px);
+}
+
+/* Hide scrollbar */
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f0f2f2;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c7c7c7;
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
