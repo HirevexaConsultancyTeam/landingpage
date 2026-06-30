@@ -154,7 +154,11 @@ export default function CourseDetailPage() {
 
   const totalLessons = course?.modules.reduce((a, m) => a + m.lessons.length, 0) ?? 0;
   const effectivePrice = course ? course.price - (course.price * course.discount) / 100 : 0;
-  const totalMonths = course?.modules.length ?? 0;
+  // Module count is a curriculum-structure number, NOT a time duration.
+  // The actual course duration (e.g. "3 Weeks") lives on course.duration and must be used
+  // anywhere we display how long the course takes.
+  const totalModules = course?.modules.length ?? 0;
+  const durationLabel = course?.duration?.trim() || "Self-paced";
 
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -208,9 +212,9 @@ export default function CourseDetailPage() {
                 <span className="inline-flex items-center gap-1.5 text-xs bg-white/10 px-3 py-1.5 rounded-full">
                   <Users size={11} /> {course._count.enrollments} enrolled
                 </span>
-                {totalMonths > 0 && (
+                {totalModules > 0 && (
                   <span className="inline-flex items-center gap-1.5 text-xs bg-white/10 px-3 py-1.5 rounded-full">
-                    <Calendar size={11} /> {totalMonths} month{totalMonths !== 1 ? "s" : ""} · {totalLessons} lessons
+                    <Calendar size={11} /> {totalModules} module{totalModules !== 1 ? "s" : ""} · {totalLessons} lessons
                   </span>
                 )}
               </div>
@@ -262,7 +266,7 @@ export default function CourseDetailPage() {
                   )}
                   <div className="mt-5 space-y-2 border-t border-gray-100 pt-4">
                     {[
-                      { icon: Calendar, text: `${totalMonths} month${totalMonths !== 1 ? "s" : ""} of structured content` },
+                      { icon: Calendar, text: `${durationLabel} of structured content` },
                       { icon: BookOpen, text: `${totalLessons} lessons included` },
                       { icon: Globe, text: `Taught in ${course.language}` },
                       { icon: Award, text: `${LEVEL_LABELS[course.level]} level` },
@@ -300,7 +304,7 @@ export default function CourseDetailPage() {
             {/* Stats */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {[
-                { icon: Calendar, label: "Duration", value: `${totalMonths} Months` },
+                { icon: Calendar, label: "Duration", value: durationLabel },
                 { icon: BookOpen, label: "Lessons", value: `${totalLessons}` },
                 { icon: Users, label: "Enrolled", value: `${course._count.enrollments}+` },
                 { icon: Award, label: "Level", value: LEVEL_LABELS[course.level] },
@@ -350,7 +354,7 @@ export default function CourseDetailPage() {
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-6">
                 <div>
                   <h2 className="text-lg font-bold text-gray-900">Course Curriculum</h2>
-                  <p className="text-xs text-gray-400 mt-0.5">{totalMonths} months · {totalLessons} lessons</p>
+                  <p className="text-xs text-gray-400 mt-0.5">{totalModules} module{totalModules !== 1 ? "s" : ""} · {totalLessons} lessons</p>
                 </div>
                 <button
                   onClick={() => {
@@ -378,7 +382,7 @@ export default function CourseDetailPage() {
                         <button onClick={() => toggleModule(mod.id)}
                           className="w-full flex items-center gap-3 px-4 py-4 bg-gray-50 hover:bg-gray-100 transition text-left group">
                           <div className="flex-shrink-0 w-14 h-14 rounded-xl bg-gradient-to-br from-[#232F3E] to-[#37475A] text-white flex flex-col items-center justify-center shadow-sm group-hover:from-[#FF9900] group-hover:to-[#e88d00] group-hover:text-gray-900 transition-all duration-200">
-                            <span className="text-[9px] font-semibold opacity-70 leading-none uppercase tracking-wider">Month</span>
+                            <span className="text-[9px] font-semibold opacity-70 leading-none uppercase tracking-wider">Module</span>
                             <span className="text-2xl font-bold leading-tight">{mi + 1}</span>
                           </div>
                           <div className="flex-1 min-w-0">
@@ -417,7 +421,7 @@ export default function CourseDetailPage() {
               {!enrolled && (
                 <div className="mt-6 p-5 bg-gradient-to-r from-orange-50 to-yellow-50 border border-orange-100 rounded-xl text-center">
                   <p className="text-sm font-bold text-gray-900 mb-1">Ready to start your journey?</p>
-                  <p className="text-xs text-gray-500 mb-4">Get full access to all {totalMonths} months · 100% Effort guaranteed</p>
+                  <p className="text-xs text-gray-500 mb-4">Get full access to the entire {durationLabel} program · 100% Effort guaranteed</p>
                   <EnrollButton full />
                 </div>
               )}

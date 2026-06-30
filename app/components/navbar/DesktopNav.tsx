@@ -43,7 +43,7 @@ export default function DesktopNav({ session, loading }: Props) {
           {/* Logo */}
           <Link href="/"
             className="flex items-center gap-3 border border-transparent hover:border-white rounded px-2 py-1 flex-shrink-0">
-            <Image src="/logo1.png" alt="HireVexa" width={38} height={38} className="rounded-full bg-white p-1" />
+            <Image src="/logo.png" alt="HireVexa" width={38} height={38} className="rounded-full bg-white p-1" />
             <div>
               <h1 className="font-bold text-xl">HireVexa</h1>
               <p className="text-[10px] uppercase tracking-widest text-[#FF9900]">Consultancy</p>
