@@ -18,7 +18,15 @@ const sections = [
   },
   {
     title: "4. Our Services",
-    content: `HireVexa provides career placement assistance, resume building, interview preparation, and job matching services. Our placement program includes applying to a minimum of 3 (three) hiring partner companies on your behalf. While we strive to secure placement for every candidate, we do not guarantee employment or placement. Final hiring decisions are made solely by the respective companies and are beyond our control.`
+    content: `HireVexa provides career placement assistance, resume building, interview preparation, and job matching services. Our placement program includes applying to a minimum of 3 (three) hiring partner companies on your behalf.
+
+HireVexa does not guarantee employment, an interview, or a job offer of any kind. Our role is limited to making genuine, good-faith efforts on your behalf — preparing you, presenting you to hiring partners, and supporting you through the process. Final hiring decisions are made solely by the respective companies, based on their own criteria, and are entirely beyond our control.`,
+    highlight: {
+      heading: "No Guarantee of Job Placement",
+      text: "We put in real, dedicated effort for every candidate, but a job offer is never something we — or anyone — can promise. What we do guarantee is the effort: resume support, interview preparation, and applications to at least 3 hiring partners on your behalf.",
+      linkHref: "/refund-policy",
+      linkText: "Know more →"
+    }
   },
   {
     title: "5. User Conduct",
@@ -37,7 +45,13 @@ Certain skill courses offered through the platform may be subject to separate fe
   },
   {
     title: "7. Refund Policy",
-    content: `All fees paid to HireVexa Consultancy are strictly non-refundable under normal circumstances. Refunds are only considered in exceptional cases where HireVexa has failed to deliver the agreed minimum services (applying to at least 3 companies on your behalf). Non-placement, rejection by companies, or dissatisfaction with offers received does not constitute grounds for a refund. All refund requests are subject to a formal investigation process. Please refer to our full Refund Policy at hirevexaconsultancy.com/refund-policy for complete details.`
+    content: `All fees paid to HireVexa Consultancy are strictly non-refundable under normal circumstances. Refunds are only considered in exceptional cases where HireVexa has failed to deliver the agreed minimum services (applying to at least 3 companies on your behalf). Non-placement, rejection by companies, or dissatisfaction with offers received does not constitute grounds for a refund. All refund requests are subject to a formal investigation process.`,
+    highlight: {
+      heading: "Full Refund Policy Details",
+      text: "For the complete breakdown of what qualifies for a refund, the investigation process, and timelines, see our dedicated Refund Policy page.",
+      linkHref: "/refund-policy",
+      linkText: "Know more →"
+    }
   },
   {
     title: "8. Intellectual Property",
@@ -92,6 +106,18 @@ export default function TermsPage() {
             <div key={s.title}>
               <h2 className="text-lg font-bold text-gray-900 mb-3">{s.title}</h2>
               <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-line">{s.content}</p>
+
+              {s.highlight && (
+                <div className="bg-[#fff4f4] border border-red-100 rounded-2xl p-5 mt-4">
+                  <p className="text-sm font-bold text-gray-900 mb-2">{s.highlight.heading}</p>
+                  <p className="text-sm text-gray-600 leading-relaxed">
+                    {s.highlight.text}{" "}
+                    <Link href={s.highlight.linkHref} className="text-[#FF9900] font-semibold hover:underline whitespace-nowrap">
+                      {s.highlight.linkText}
+                    </Link>
+                  </p>
+                </div>
+              )}
             </div>
           ))}
         </div>

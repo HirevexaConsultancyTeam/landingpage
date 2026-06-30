@@ -322,7 +322,7 @@ export default function CourseDetailPage() {
               </h2>
               <div className="grid sm:grid-cols-2 gap-3">
                 {[
-                  { icon: ShieldCheck, text: "Placement guaranteed or money back" },
+                  { icon: ShieldCheck, text: "100% Effort guaranteed" },
                   { icon: Briefcase, text: "Direct referrals to 45+ companies" },
                   { icon: GraduationCap, text: "Azure AZ-900 certification prep" },
                   { icon: TrendingUp, text: "Live projects & portfolio building" },
@@ -417,7 +417,7 @@ export default function CourseDetailPage() {
               {!enrolled && (
                 <div className="mt-6 p-5 bg-gradient-to-r from-orange-50 to-yellow-50 border border-orange-100 rounded-xl text-center">
                   <p className="text-sm font-bold text-gray-900 mb-1">Ready to start your journey?</p>
-                  <p className="text-xs text-gray-500 mb-4">Get full access to all {totalMonths} months · Placement guaranteed</p>
+                  <p className="text-xs text-gray-500 mb-4">Get full access to all {totalMonths} months · 100% Effort guaranteed</p>
                   <EnrollButton full />
                 </div>
               )}
