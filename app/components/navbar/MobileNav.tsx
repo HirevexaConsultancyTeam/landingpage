@@ -35,7 +35,7 @@ export default function MobileNav({ session, loading }: Props) {
       <header className="md:hidden bg-[#131921] text-white">
         <div className="flex items-center justify-between px-4 py-3">
           <Link href="/" className="flex items-center gap-2">
-            <img src="/logo.png" alt="HireVexa" className="h-9 w-9 rounded-full bg-white p-1" />
+            <img src="/logo1.png" alt="HireVexa" className="h-9 w-9 rounded-full bg-white p-1" />
             <div>
               <h2 className="font-bold">HireVexa</h2>
               <p className="text-[10px] text-[#FF9900] uppercase">Consultancy</p>
