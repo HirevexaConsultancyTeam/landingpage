@@ -75,7 +75,7 @@ export default function TermsPage() {
       <div className="bg-gradient-to-br from-[#1a2332] to-[#232F3E] text-white py-14 sm:py-20">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 text-center">
           <p className="text-[#FF9900] text-xs font-semibold uppercase tracking-widest mb-3">Legal</p>
-          <h1 className="text-3xl sm:text-4xl font-bold mb-4">Terms & Conditions</h1>
+          <h1 className="text-3xl sm:text-4xl font-bold mb-4">Refund and Placement policy</h1>
           <p className="text-gray-400 text-sm">Last updated: June 2025</p>
         </div>
       </div>
