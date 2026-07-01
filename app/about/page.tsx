@@ -34,7 +34,7 @@ const values = [
 ];
 
 const process = [
-  { step: "01", title: "Registration & Profile Analysis", description: "Register free, upload your resume, and complete your career profile with education and skills." },
+  { step: "01", title: "Registration & Profile Analysis", description: "Register Now, upload your resume, and complete your career profile with education and skills." },
   { step: "02", title: "Career Counselling", description: "Your dedicated counsellor identifies your strengths, goals, and the most suitable opportunities." },
   { step: "03", title: "Resume & Interview Preparation", description: "Professional resume building, mock interviews, aptitude training, and communication coaching." },
   { step: "04", title: "Job Matching & Applications", description: "We apply to a minimum of 3 companies on your behalf from our network of 45+ hiring partners." },
@@ -71,7 +71,7 @@ export default function AboutPage() {
           </p>
           <div className="flex flex-col sm:flex-row gap-3">
             <Link href="/onboarding" className="inline-flex items-center justify-center gap-2 bg-[#FF9900] hover:bg-[#e88d00] text-gray-900 font-bold px-8 py-3.5 rounded-xl text-sm transition-all shadow-lg hover:scale-[1.02]">
-              Get Started Free <ArrowRight size={16} />
+              Get Started <ArrowRight size={16} />
             </Link>
             <Link href="/jobs" className="inline-flex items-center justify-center gap-2 bg-white/10 hover:bg-white/15 border border-white/20 text-white font-semibold px-8 py-3.5 rounded-xl text-sm transition-all">
               Browse Jobs
@@ -115,7 +115,7 @@ export default function AboutPage() {
               <h3 className="text-xl font-bold text-gray-900 mb-3">Our Commitment</h3>
               <p className="text-sm text-gray-600 leading-relaxed mb-5">We are committed to helping every student discover their potential and achieve professional success through expert mentorship, industry-relevant preparation, and strategic placement support.</p>
               <div className="space-y-2">
-                {["Free registration — no upfront barrier", "Dedicated counsellor from Day 1", "Apply to minimum 3 companies on your behalf", "Support until you join your first company"].map(t => (
+                {["Easy registration — no upfront barrier", "Dedicated counsellor from Day 1", "Apply to minimum 3 companies on your behalf", "Support until you join your first company"].map(t => (
                   <div key={t} className="flex items-center gap-2">
                     <CheckCircle size={14} className="text-emerald-500 flex-shrink-0" />
                     <span className="text-xs text-gray-600">{t}</span>
@@ -235,7 +235,7 @@ export default function AboutPage() {
       <section className="max-w-5xl mx-auto px-4 sm:px-6 pb-16">
         <div className="bg-[#FF9900] rounded-3xl p-8 sm:p-12 text-center">
           <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-3">Ready to Start Your Career Journey?</h2>
-          <p className="text-gray-800 text-sm mb-8 max-w-lg mx-auto">Join hundreds of freshers who trusted HireVexa to land their first job. Free to register.</p>
+          <p className="text-gray-800 text-sm mb-8 max-w-lg mx-auto">Join hundreds of freshers who trusted HireVexa to land their first job. Easy to register.</p>
           <Link href="/onboarding"
             className="inline-flex items-center justify-center gap-2 bg-gray-900 hover:bg-[#1a2332] text-white font-bold px-10 py-4 rounded-xl text-sm transition-all shadow-lg">
             Register Today <ArrowRight size={16} />
