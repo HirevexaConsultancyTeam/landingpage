@@ -42,7 +42,7 @@ const sections = [
   },
   {
     title: "10. Contact Us",
-    content: `If you have any questions about this Privacy Policy or how we handle your data, please contact us at hirevexaconsultancy01@gmail.com or write to us at HireVexa Consultancy, Pan India.`
+    content: `If you have any questions about this Privacy Policy or how we handle your data, please contact us at hirevexaconsultancy@gmail.com or write to us at HireVexa Consultancy, Pan India.`
   },
 ];
 
