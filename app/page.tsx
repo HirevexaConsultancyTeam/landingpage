@@ -37,6 +37,7 @@ const companies = [
   { name: "Capgemini", logo: "/logos/capgemini.png" },
   { name: "Cognizant", logo: "/logos/cognizant1.png" },
   { name: "Tech Mahindra", logo: "/logos/techmahindra.png" },
+  { name: "Techmaa", logo: "/logos/techmaa.jpeg" },
 ];
 
 const LEVEL_LABELS: Record<string, string> = {
