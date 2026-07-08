@@ -122,7 +122,7 @@ export default function NavLinks({ role }: Props) {
         Skill Courses
       </Link>
 
-      <Link href="/services" className={linkClass}>Other Services</Link>
+     
 
      
     </>

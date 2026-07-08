@@ -43,7 +43,7 @@ export default function Footer() {
                 <li><Link href="/jobs" className="hover:text-white hover:underline">Browse Jobs</Link></li>
                 <li><Link href="/courses" className="hover:text-white hover:underline">Skill Courses</Link></li>
                 <li><Link href="/onboarding" className="hover:text-white hover:underline">Get Placed</Link></li>
-                <li><Link href="/services" className="hover:text-white hover:underline">Other Services</Link></li>
+                
               </ul>
             </div>
 
