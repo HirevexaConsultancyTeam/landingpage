@@ -79,7 +79,7 @@ Certain skill courses offered through the platform may be subject to separate fe
   },
   {
     title: "14. Contact",
-    content: `If you have any questions about these Terms and Conditions, please contact us at hirevexaconsultancy01@gmail.com.`
+    content: `If you have any questions about these Terms and Conditions, please contact us at hirevexaconsultancy@gmail.com.`
   },
 ];
 
