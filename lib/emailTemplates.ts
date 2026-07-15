@@ -1,4 +1,4 @@
-const BASE_URL = process.env.NEXTAUTH_URL || "https://landingpage-eta-drab.vercel.app";
+const BASE_URL = process.env.NEXTAUTH_URL || "https://hirevexaconsultancy.in";
 
 export function welcomeEmail(name: string) {
   return `
