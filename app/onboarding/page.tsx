@@ -19,6 +19,7 @@ export default function OnboardingPage() {
 const [resumeUploading, setResumeUploading] = useState(false);
 const [resumeUploaded, setResumeUploaded] = useState(false);
   const [error, setError] = useState("");
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [form, setForm] = useState({
     firstName: "", lastName: "", email: "", mobile: "", city: "",
     password: "", confirmPassword: "",
@@ -80,8 +81,14 @@ const [resumeUploaded, setResumeUploaded] = useState(false);
 }
 
   const handleSubmit = async () => {
-    setLoading(true);
     setError("");
+
+    if (!agreedToTerms) {
+      setError("Please agree to the Terms & Conditions and Refund Policy to continue.");
+      return;
+    }
+
+    setLoading(true);
     try {
       const res = await fetch("/api/register", {
         method: "POST",
@@ -301,173 +308,12 @@ const [resumeUploaded, setResumeUploaded] = useState(false);
             </div>
           )}
 
-          {/* Step 3: Review */}
-{step === 3 && (
-  <div>
-
-    <h2 className="text-xl font-bold text-[#0F1111] mb-1">
-      Review Your Profile
-    </h2>
-
-    <p className="text-[#565959] text-sm mb-5">
-      Please verify your information before creating your account.
-    </p>
-
-    <div className="space-y-0 border border-[#DDD] rounded overflow-hidden">
-
-      {[
-        {
-          label: "Name",
-          value: `${form.firstName} ${form.lastName}`,
-        },
-
-        {
-          label: "Email",
-          value: form.email,
-        },
-
-        {
-          label: "Mobile",
-          value: form.mobile,
-        },
-
-        {
-          label: "City",
-          value: form.city || "—",
-        },
-
-        {
-          label: "Degree",
-          value: form.degree || "—",
-        },
-
-        {
-          label: "Branch",
-          value: form.branch || "—",
-        },
-
-        {
-          label: "College",
-          value: form.college || "—",
-        },
-
-        {
-          label: "Graduation Year",
-          value: form.gradYear || "—",
-        },
-
-        {
-          label: "CGPA",
-          value: form.cgpa || "—",
-        },
-
-        {
-          label: "Experience",
-          value: form.experience,
-        },
-
-        {
-          label: "Job Type",
-          value: form.jobType || "—",
-        },
-
-        {
-          label: "Expected Salary",
-          value: form.salary || "—",
-        },
-
-        {
-          label: "Preferred Locations",
-          value:
-            form.locations.length
-              ? form.locations.join(", ")
-              : "—",
-        },
-
-        {
-          label: "Skills",
-          value: form.skills || "—",
-        },
-
-      ].map((row, index) => (
-
-        <div
-          key={row.label}
-          className={`flex items-start gap-3 px-4 py-3 ${
-            index % 2 === 0
-              ? "bg-white"
-              : "bg-[#FAFAFA]"
-          }`}
-        >
-
-          <span className="text-xs text-[#565959] w-36 flex-shrink-0">
-            {row.label}
-          </span>
-
-          <span className="text-xs font-semibold text-[#0F1111]">
-            {row.value}
-          </span>
-
-        </div>
-
-      ))}
-
-    </div>
-
-    <div className="mt-5 bg-[#F0F9FF] border border-[#B0E0F5] rounded-lg p-4">
-
-      <h3 className="font-semibold text-[#007185] mb-2">
-        Resume Upload
-      </h3>
-
-      <p className="text-sm text-[#565959]">
-
-        You can upload your resume immediately after logging into your dashboard.
-
-      </p>
-
-      <p className="text-sm text-[#565959] mt-2">
-
-        Don't have one?
-
-        Our team can help you build an ATS-friendly resume after registration.
-
-      </p>
-
-    </div>
-
-    <div className="mt-5 bg-[#FFFBE6] border border-[#FFD814] rounded-lg p-4">
-
-      <p className="text-sm text-[#565959]">
-
-        🎉 After registration you'll be able to:
-
-      </p>
-
-      <ul className="mt-3 list-disc ml-5 text-sm text-[#565959] space-y-1">
-
-        <li>Upload your resume</li>
-
-        <li>Apply to jobs</li>
-
-        <li>Track application status</li>
-
-        <li>Book counselling sessions</li>
-
-      </ul>
-
-    </div>
-
-  </div>
-)}
-
-         
-
-          {/* Step 4: Review */}
-          {step === 4 && (
+          {/* Step 3: Review (final step) */}
+          {step === 3 && (
             <div>
               <h2 className="text-xl font-bold text-[#0F1111] mb-1">Review Your Profile</h2>
-              <p className="text-[#565959] text-sm mb-5">Please confirm your details before submitting.</p>
+              <p className="text-[#565959] text-sm mb-5">Please verify your information before creating your account.</p>
+
               <div className="space-y-0 border border-[#DDD] rounded overflow-hidden">
                 {[
                   { label: "Name", value: `${form.firstName} ${form.lastName}` },
@@ -477,22 +323,56 @@ const [resumeUploaded, setResumeUploaded] = useState(false);
                   { label: "Degree", value: form.degree || "—" },
                   { label: "Branch", value: form.branch || "—" },
                   { label: "College", value: form.college || "—" },
-                  { label: "Grad Year", value: form.gradYear || "—" },
+                  { label: "Graduation Year", value: form.gradYear || "—" },
                   { label: "CGPA", value: form.cgpa || "—" },
+                  { label: "Experience", value: form.experience },
                   { label: "Job Type", value: form.jobType || "—" },
-                  { label: "Expected CTC", value: form.salary || "—" },
-                  { label: "Locations", value: form.locations.join(", ") || "—" },
-                ].map((row, i) => (
-                  <div key={row.label} className={`flex items-start gap-3 px-4 py-2.5 ${i % 2 === 0 ? "bg-white" : "bg-[#FAFAFA]"}`}>
-                    <span className="text-xs text-[#565959] w-28 flex-shrink-0 pt-0.5">{row.label}</span>
+                  { label: "Expected Salary", value: form.salary || "—" },
+                  { label: "Preferred Locations", value: form.locations.length ? form.locations.join(", ") : "—" },
+                  { label: "Skills", value: form.skills || "—" },
+                ].map((row, index) => (
+                  <div key={row.label} className={`flex items-start gap-3 px-4 py-3 ${index % 2 === 0 ? "bg-white" : "bg-[#FAFAFA]"}`}>
+                    <span className="text-xs text-[#565959] w-36 flex-shrink-0">{row.label}</span>
                     <span className="text-xs font-semibold text-[#0F1111]">{row.value}</span>
                   </div>
                 ))}
               </div>
-              <div className="mt-4 bg-[#FFFBE6] border border-[#FFD814] rounded p-3">
-                <p className="text-xs text-[#565959]">
-                  <strong>🎉 What happens next?</strong> Our counsellor will review your profile and call you within 24 hours to schedule your first session.
+
+              <div className="mt-5 bg-[#F0F9FF] border border-[#B0E0F5] rounded-lg p-4">
+                <h3 className="font-semibold text-[#007185] mb-2">Resume Upload</h3>
+                <p className="text-sm text-[#565959]">
+                  You can upload your resume immediately after logging into your dashboard.
                 </p>
+                <p className="text-sm text-[#565959] mt-2">
+                  Don't have one? Our team can help you build an ATS-friendly resume after registration.
+                </p>
+              </div>
+
+              <div className="mt-5 bg-[#FFFBE6] border border-[#FFD814] rounded-lg p-4">
+                <p className="text-sm text-[#565959]">🎉 After registration you'll be able to:</p>
+                <ul className="mt-3 list-disc ml-5 text-sm text-[#565959] space-y-1">
+                  <li>Upload your resume</li>
+                  <li>Apply to jobs</li>
+                  <li>Track application status</li>
+                  <li>Book counselling sessions</li>
+                </ul>
+              </div>
+
+              {/* Terms & Refund Policy agreement */}
+              <div className="mt-5 flex items-start gap-2 bg-[#FAFAFA] border border-[#DDD] rounded-lg p-4">
+                <input
+                  type="checkbox"
+                  id="agreeTerms"
+                  checked={agreedToTerms}
+                  onChange={e => {
+                    setAgreedToTerms(e.target.checked);
+                    if (e.target.checked) setError("");
+                  }}
+                  className="mt-0.5 w-4 h-4 accent-[#FF9900] cursor-pointer flex-shrink-0"
+                />
+                <label htmlFor="agreeTerms" className="text-sm text-[#0F1111] cursor-pointer">
+                  I agree to the Terms &amp; Conditions and Refund Policy.
+                </label>
               </div>
             </div>
           )}
@@ -511,7 +391,7 @@ const [resumeUploaded, setResumeUploaded] = useState(false);
                 Continue <ChevronRight size={14} />
               </button>
             ) : (
-              <button onClick={handleSubmit} disabled={loading}
+              <button onClick={handleSubmit} disabled={loading || !agreedToTerms}
                 className="bg-[#FF9900] hover:bg-[#FA8900] text-[#131921] font-bold px-8 py-2 rounded text-sm flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed">
                 {loading ? <><Loader2 size={16} className="animate-spin" /> Submitting...</> : <><CheckCircle size={16} /> Submit Profile</>}
               </button>
