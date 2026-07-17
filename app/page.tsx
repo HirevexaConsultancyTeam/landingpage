@@ -27,16 +27,12 @@ const testimonials = [
 ];
 
 const companies = [
-  { name: "TCS", logo: "/logos/tcs.png" },
-  { name: "Infosys", logo: "/logos/infosys.png" },
-  { name: "Wipro", logo: "/logos/wipro.png" },
-  { name: "Accenture", logo: "/logos/accenture.png" },
-  { name: "Deloitte", logo: "/logos/delloite.png" },
-  { name: "HCL", logo: "/logos/hcl.png" },
-  { name: "IBM", logo: "/logos/ibm.png" },
+
   { name: "Capgemini", logo: "/logos/capgemini.png" },
   { name: "Cognizant", logo: "/logos/cognizant1.png" },
-  { name: "Tech Mahindra", logo: "/logos/techmahindra.png" },
+  { name: "NIFTEL", logo: "/logos/niftel.png" },
+  { name: "DIGITECH", logo: "/logos/digitech.png" },
+  { name: "COZENT", logo: "/logos/cozent.png" },
   { name: "Techmaa", logo: "/logos/Techmaa.png" },
 ];
 
