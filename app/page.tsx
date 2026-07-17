@@ -28,8 +28,8 @@ const testimonials = [
 
 const companies = [
 
-  { name: "Capgemini", logo: "/logos/capgemini.png" },
-  { name: "Cognizant", logo: "/logos/cognizant1.png" },
+ 
+  
   { name: "NIFTEL", logo: "/logos/niftel.png" },
   { name: "DIGITECH", logo: "/logos/digitech.png" },
   { name: "COZENT", logo: "/logos/cozent.png" },
