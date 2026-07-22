@@ -33,7 +33,7 @@ const companies = [
   { name: "NIFTEL", logo: "/logos/niftel.png" },
   { name: "DIGITECH", logo: "/logos/digitech.png" },
   { name: "COZENT", logo: "/logos/cozent.png" },
-  { name: "Techmaa", logo: "/logos/Techmaa.png" },
+  
 ];
 
 const LEVEL_LABELS: Record<string, string> = {
