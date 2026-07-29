@@ -168,9 +168,19 @@ export default function Footer() {
             <Link href="/refund-policy" className="hover:text-white hover:underline">Refund Policy</Link>
           </div>
 
-          <p className="text-[#AAAAAA] text-[10px] sm:text-xs text-center">
-            © 2026 HireVexa Consultancy. All rights reserved.
-          </p>
+<div className="text-center space-y-1">
+  <p className="text-[#AAAAAA] text-[10px] sm:text-xs">
+    Managed by: <span className="text-white font-medium">HireVexa Consultancy Private Limited</span>
+  </p>
+
+  <p className="text-[#AAAAAA] text-[10px] sm:text-xs">
+    Powered by: <span className="text-white font-medium">HireVexa Consultancy Private Limited</span>
+  </p>
+
+  <p className="text-[#AAAAAA] text-[10px] sm:text-xs">
+    © 2026 HireVexa Consultancy. All rights reserved.
+  </p>
+</div>
         </div>
       </div>
     </footer>
