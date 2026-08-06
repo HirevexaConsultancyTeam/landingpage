@@ -1,14 +1,15 @@
 "use client";
 import { useEffect, useState } from "react";
-import { ShoppingBag, BookOpen, Loader2, TrendingUp, IndianRupee, Users } from "lucide-react";
+import { ShoppingBag, BookOpen, Loader2, TrendingUp, IndianRupee, Users, ShieldCheck } from "lucide-react";
 
 interface Order {
   id: string;
   amount: number;
   status: string;
+  type: "COURSE" | "REGISTRATION";
   createdAt: string;
   user: { email: string };
-  course: { title: string; slug: string };
+  course: { title: string; slug: string } | null;
 }
 
 const STATUS_STYLES: Record<string, string> = {
@@ -18,6 +19,11 @@ const STATUS_STYLES: Record<string, string> = {
   FAILED: "bg-red-50 text-red-700 border-red-100",
   REFUNDED: "bg-gray-50 text-gray-600 border-gray-200",
 };
+
+function orderLabel(order: Order) {
+  if (order.type === "REGISTRATION") return "Registration Fee";
+  return order.course?.title ?? "Course (deleted)";
+}
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -38,7 +44,7 @@ export default function OrdersPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Orders</h1>
-        <p className="text-sm text-gray-500 mt-1">Course purchase history and revenue</p>
+        <p className="text-sm text-gray-500 mt-1">Course purchases and registration fee history</p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -71,7 +77,7 @@ export default function OrdersPage() {
               <BookOpen className="h-8 w-8 text-gray-200" />
             </div>
             <p className="font-semibold text-gray-600">No orders yet</p>
-            <p className="text-sm text-gray-400 mt-1">Orders will appear here once candidates purchase courses.</p>
+            <p className="text-sm text-gray-400 mt-1">Orders will appear here once candidates purchase courses or pay the registration fee.</p>
           </div>
         ) : (
           <>
@@ -81,7 +87,7 @@ export default function OrdersPage() {
                 <thead>
                   <tr className="border-b bg-gray-50 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
                     <th className="px-5 py-3">Candidate</th>
-                    <th className="px-5 py-3">Course</th>
+                    <th className="px-5 py-3">Item</th>
                     <th className="px-5 py-3">Amount</th>
                     <th className="px-5 py-3">Status</th>
                     <th className="px-5 py-3">Date</th>
@@ -91,7 +97,14 @@ export default function OrdersPage() {
                   {orders.map(order => (
                     <tr key={order.id} className="hover:bg-gray-50 transition">
                       <td className="px-5 py-4 text-sm text-gray-700">{order.user.email}</td>
-                      <td className="px-5 py-4 font-medium text-gray-900">{order.course.title}</td>
+                      <td className="px-5 py-4 font-medium text-gray-900">
+                        <div className="flex items-center gap-2">
+                          {order.type === "REGISTRATION" && (
+                            <ShieldCheck size={14} className="text-[#FF9900] flex-shrink-0" />
+                          )}
+                          {orderLabel(order)}
+                        </div>
+                      </td>
                       <td className="px-5 py-4 font-semibold text-gray-900">₹{order.amount.toLocaleString()}</td>
                       <td className="px-5 py-4">
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${STATUS_STYLES[order.status] ?? "bg-gray-50 text-gray-600 border-gray-200"}`}>
@@ -112,7 +125,12 @@ export default function OrdersPage() {
               {orders.map(order => (
                 <div key={order.id} className="p-4">
                   <div className="flex items-start justify-between mb-2">
-                    <p className="font-semibold text-gray-900 text-sm">{order.course.title}</p>
+                    <p className="font-semibold text-gray-900 text-sm flex items-center gap-1.5">
+                      {order.type === "REGISTRATION" && (
+                        <ShieldCheck size={14} className="text-[#FF9900] flex-shrink-0" />
+                      )}
+                      {orderLabel(order)}
+                    </p>
                     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border ${STATUS_STYLES[order.status] ?? "bg-gray-50 text-gray-600 border-gray-200"}`}>
                       {order.status}
                     </span>
