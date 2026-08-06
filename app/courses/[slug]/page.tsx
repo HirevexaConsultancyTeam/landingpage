@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import axios from "axios";
+import RazorpayCheckoutButton from "@/components/RazorpayCheckoutButton";
 
 interface Lesson { id: string; title: string; duration?: string | null; isPreview: boolean; order: number; }
 interface Module { id: string; title: string; description?: string | null; order: number; lessons: Lesson[]; }
@@ -136,17 +137,18 @@ export default function CourseDetailPage() {
   }, [session, course]);
 
   async function handleEnroll() {
-    if (!session) { router.push("/login"); return; }
-    if (enrolled) { router.push("/dashboard/courses"); return; }
-    try {
-      setEnrolling(true);
-      await axios.post("/api/enrollments", { courseId: course!.id });
-      setEnrolled(true);
-      toast.success("Enrolled! Start learning now.");
-    } catch (err: any) {
-      toast.error(err?.response?.data?.message ?? "Failed to enroll.");
-    } finally { setEnrolling(false); }
-  }
+  // Only ever called for FREE courses now
+  if (!session) { router.push("/login"); return; }
+  if (enrolled) { router.push("/dashboard/courses"); return; }
+  try {
+    setEnrolling(true);
+    await axios.post("/api/enrollments", { courseId: course!.id });
+    setEnrolled(true);
+    toast.success("Enrolled! Start learning now.");
+  } catch (err: any) {
+    toast.error(err?.response?.data?.message ?? "Failed to enroll.");
+  } finally { setEnrolling(false); }
+}
 
   function toggleModule(id: string) {
     setExpandedModules(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
@@ -258,7 +260,26 @@ export default function CourseDetailPage() {
                       <span className="inline-block mt-1 text-xs font-bold text-white bg-emerald-500 px-2 py-0.5 rounded-full">{course.discount}% OFF</span>
                     )}
                   </div>
-                  <EnrollButton full />
+                 {effectivePrice === 0 ? (
+  <EnrollButton full />
+) : !session ? (
+  <button
+    onClick={() => router.push("/login")}
+    className="w-full bg-[#FF9900] hover:bg-[#e88d00] text-gray-900 font-bold rounded-xl py-3.5 text-sm transition-all"
+  >
+    Login to Enroll — ₹{effectivePrice.toFixed(0)}
+  </button>
+) : (
+  <RazorpayCheckoutButton
+    type="COURSE"
+    courseId={course.id}
+    label={enrolled ? "Go to My Course" : `Enroll Now — ₹${effectivePrice.toFixed(0)}`}
+    className="w-full bg-[#FF9900] hover:bg-[#e88d00] text-gray-900 font-bold rounded-xl py-3.5 text-sm transition-all disabled:opacity-60"
+    userEmail={session?.user?.email ?? undefined}
+    userName={session?.user?.name ?? undefined}
+    onSuccess={() => { setEnrolled(true); router.push("/dashboard/courses"); }}
+  />
+)}
                   {!session && (
                     <p className="text-xs text-center text-gray-400 mt-2">
                       <Link href="/login" className="text-[#FF9900] font-semibold hover:underline">Login</Link> to enroll
@@ -422,7 +443,26 @@ export default function CourseDetailPage() {
                 <div className="mt-6 p-5 bg-gradient-to-r from-orange-50 to-yellow-50 border border-orange-100 rounded-xl text-center">
                   <p className="text-sm font-bold text-gray-900 mb-1">Ready to start your journey?</p>
                   <p className="text-xs text-gray-500 mb-4">Get full access to the entire {durationLabel} program · 100% Effort guaranteed</p>
-                  <EnrollButton full />
+                 {effectivePrice === 0 ? (
+  <EnrollButton full />
+) : !session ? (
+  <button
+    onClick={() => router.push("/login")}
+    className="w-full bg-[#FF9900] hover:bg-[#e88d00] text-gray-900 font-bold rounded-xl py-3.5 text-sm transition-all"
+  >
+    Login to Enroll — ₹{effectivePrice.toFixed(0)}
+  </button>
+) : (
+  <RazorpayCheckoutButton
+    type="COURSE"
+    courseId={course.id}
+    label={enrolled ? "Go to My Course" : `Enroll Now — ₹${effectivePrice.toFixed(0)}`}
+    className="w-full bg-[#FF9900] hover:bg-[#e88d00] text-gray-900 font-bold rounded-xl py-3.5 text-sm transition-all disabled:opacity-60"
+    userEmail={session?.user?.email ?? undefined}
+    userName={session?.user?.name ?? undefined}
+    onSuccess={() => { setEnrolled(true); router.push("/dashboard/courses"); }}
+  />
+)}
                 </div>
               )}
             </div>

@@ -371,7 +371,7 @@ const [resumeUploaded, setResumeUploaded] = useState(false);
                   className="mt-0.5 w-4 h-4 accent-[#FF9900] cursor-pointer flex-shrink-0"
                 />
                 <label htmlFor="agreeTerms" className="text-sm text-[#0F1111] cursor-pointer">
-                  I agree to the Terms &amp; Conditions and Refund Policy.
+                  I agree to the Terms &amp; Conditions and Privacy Policy.
                 </label>
               </div>
             </div>

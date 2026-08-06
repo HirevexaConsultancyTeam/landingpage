@@ -19,6 +19,30 @@ model User {
   enrollments Enrollment[]
   orders      Order[]
   reviews     Review[]
+  registrationPaid Boolean @default(false)
+}
+
+model Order {
+  id              String      @id @default(cuid())
+  userId          String
+  courseId        String?     // now optional
+  type            OrderType   @default(COURSE)
+  amount          Float
+  status          OrderStatus @default(CREATED)
+  razorpayOrderId String?     @unique
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  course          Course?     @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  payment         Payment?
+
+  @@index([userId])
+  @@index([courseId])
+}
+
+enum OrderType {
+  COURSE
+  REGISTRATION
 }
 
 model Candidate {
@@ -186,22 +210,7 @@ model Enrollment {
   @@index([courseId])
 }
 
-model Order {
-  id              String      @id @default(cuid())
-  userId          String
-  courseId        String
-  amount          Float
-  status          OrderStatus @default(CREATED)
-  razorpayOrderId String?     @unique
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
-  course          Course      @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  payment         Payment?
 
-  @@index([userId])
-  @@index([courseId])
-}
 
 model Payment {
   id                String        @id @default(cuid())
