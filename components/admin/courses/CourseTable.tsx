@@ -24,6 +24,8 @@ import {
   EyeOff,
   Star,
   BookOpen,
+  Users,
+  Layers,
 } from "lucide-react";
 
 export interface CourseRow {
@@ -209,28 +211,28 @@ export default function CourseTable({
           const course = row.original;
           return (
             <div className="flex items-center justify-end gap-1">
-  
-   <a href={`/admin/courses/${course.id}/curriculum`}
-    className="rounded-lg p-1.5 text-gray-400 transition hover:bg-orange-50 hover:text-[#FF9900]"
-    title="Curriculum"
-  >
-    <BookOpen className="h-4 w-4" />
-  </a>
-  <button
-    onClick={() => onEdit(course)}
-    className="rounded-lg p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700"
-    title="Edit"
-  >
-    <Pencil className="h-4 w-4" />
-  </button>
-  <button
-    onClick={() => onDelete(course)}
-    className="rounded-lg p-1.5 text-gray-400 transition hover:bg-red-50 hover:text-red-600"
-    title="Delete"
-  >
-    <Trash2 className="h-4 w-4" />
-  </button>
-</div>
+              <a
+                href={`/admin/courses/${course.id}/curriculum`}
+                className="rounded-lg p-1.5 text-gray-400 transition hover:bg-orange-50 hover:text-[#FF9900]"
+                title="Curriculum"
+              >
+                <BookOpen className="h-4 w-4" />
+              </a>
+              <button
+                onClick={() => onEdit(course)}
+                className="rounded-lg p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700"
+                title="Edit"
+              >
+                <Pencil className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => onDelete(course)}
+                className="rounded-lg p-1.5 text-gray-400 transition hover:bg-red-50 hover:text-red-600"
+                title="Delete"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </div>
           );
         },
         enableSorting: false,
@@ -263,12 +265,15 @@ export default function CourseTable({
   const totalRows = table.getFilteredRowModel().rows.length;
   const from = totalRows === 0 ? 0 : pageIndex * pageSize + 1;
   const to = Math.min((pageIndex + 1) * pageSize, totalRows);
+  const rows = table.getRowModel().rows;
+  const isEmpty = rows.length === 0;
+  const hasActiveFilter =
+    globalFilter || table.getColumn("published")?.getFilterValue() !== undefined;
 
   return (
     <div className="space-y-4">
       {/* Search + Filter bar */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        {/* Global search */}
         <input
           value={globalFilter}
           onChange={(e) => setGlobalFilter(e.target.value)}
@@ -276,9 +281,8 @@ export default function CourseTable({
           className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm outline-none focus:border-black sm:max-w-sm"
         />
 
-        {/* Status filter */}
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-400">Status:</span>
+        <div className="flex items-center gap-2 overflow-x-auto">
+          <span className="flex-shrink-0 text-xs text-gray-400">Status:</span>
           {(
             [
               { label: "All", value: undefined },
@@ -293,10 +297,8 @@ export default function CourseTable({
             return (
               <button
                 key={label}
-                onClick={() =>
-                  table.getColumn("published")?.setFilterValue(value)
-                }
-                className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition ${
+                onClick={() => table.getColumn("published")?.setFilterValue(value)}
+                className={`flex-shrink-0 rounded-lg border px-3 py-1.5 text-xs font-medium transition ${
                   isActive
                     ? "border-black bg-black text-white"
                     : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
@@ -309,95 +311,193 @@ export default function CourseTable({
         </div>
       </div>
 
-      {/* Table */}
-      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-        {loading ? (
-          <div className="flex items-center justify-center py-24">
-            <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-200 border-t-black" />
-          </div>
-        ) : table.getRowModel().rows.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-24 text-center">
-            <BookOpen className="mb-3 h-10 w-10 text-gray-200" />
-            <p className="text-sm font-medium text-gray-500">
-              {globalFilter || table.getColumn("published")?.getFilterValue() !== undefined
-                ? "No courses match your filters."
-                : "No courses yet."}
-            </p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                {table.getHeaderGroups().map((headerGroup) => (
-                  <tr
-                    key={headerGroup.id}
-                    className="border-b border-gray-100 bg-gray-50"
-                  >
-                    {headerGroup.headers.map((header) => (
-                      <th
-                        key={header.id}
-                        className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500"
-                      >
-                        {header.isPlaceholder ? null : header.column.getCanSort() ? (
-                          <button
-                            onClick={header.column.getToggleSortingHandler()}
-                            className="inline-flex items-center gap-1 hover:text-gray-800"
-                          >
-                            {flexRender(
-                              header.column.columnDef.header,
-                              header.getContext()
-                            )}
-                            {header.column.getIsSorted() === "asc" ? (
-                              <ChevronUp className="h-3.5 w-3.5" />
-                            ) : header.column.getIsSorted() === "desc" ? (
-                              <ChevronDown className="h-3.5 w-3.5" />
-                            ) : (
-                              <ChevronsUpDown className="h-3.5 w-3.5 text-gray-300" />
-                            )}
-                          </button>
-                        ) : (
-                          flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )
+      {/* Loading / empty states (shared) */}
+      {loading ? (
+        <div className="flex items-center justify-center rounded-xl border border-gray-200 bg-white py-24 shadow-sm">
+          <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-200 border-t-black" />
+        </div>
+      ) : isEmpty ? (
+        <div className="flex flex-col items-center justify-center rounded-xl border border-gray-200 bg-white py-24 text-center shadow-sm">
+          <BookOpen className="mb-3 h-10 w-10 text-gray-200" />
+          <p className="text-sm font-medium text-gray-500">
+            {hasActiveFilter ? "No courses match your filters." : "No courses yet."}
+          </p>
+        </div>
+      ) : (
+        <>
+          {/* Mobile: cards (below md) */}
+          <div className="space-y-3 md:hidden">
+            {rows.map((row) => {
+              const course = row.original;
+              const effective = course.price - (course.price * course.discount) / 100;
+              return (
+                <div
+                  key={row.id}
+                  className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5">
+                        <span className="truncate font-medium text-gray-900">
+                          {course.title}
+                        </span>
+                        {course.featured && (
+                          <Star className="h-3.5 w-3.5 flex-shrink-0 fill-yellow-400 text-yellow-400" />
                         )}
-                      </th>
-                    ))}
-                  </tr>
-                ))}
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {table.getRowModel().rows.map((row) => (
-                  <tr
-                    key={row.id}
-                    className="transition hover:bg-gray-50"
-                  >
-                    {row.getVisibleCells().map((cell) => (
-                      <td key={cell.id} className="px-5 py-4">
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext()
-                        )}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                      </div>
+                      {course.instructor && (
+                        <p className="mt-0.5 truncate text-xs text-gray-400">
+                          {course.instructor}
+                        </p>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => onTogglePublish(course)}
+                      className={`inline-flex flex-shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium transition ${
+                        course.published
+                          ? "bg-green-100 text-green-700"
+                          : "bg-gray-100 text-gray-500"
+                      }`}
+                    >
+                      {course.published ? (
+                        <>
+                          <Eye className="h-3 w-3" /> Live
+                        </>
+                      ) : (
+                        <>
+                          <EyeOff className="h-3 w-3" /> Draft
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <span
+                      className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${LEVEL_COLORS[course.level]}`}
+                    >
+                      {LEVEL_LABELS[course.level]}
+                    </span>
+                    {course.category && (
+                      <span className="text-xs text-gray-500">{course.category.name}</span>
+                    )}
+                  </div>
+
+                  <div className="mt-3 grid grid-cols-3 gap-2 border-t border-gray-100 pt-3 text-center">
+                    <div>
+                      <p className="text-sm font-semibold text-gray-900">
+                        ₹{effective.toFixed(0)}
+                      </p>
+                      {course.discount > 0 ? (
+                        <p className="text-[10px] text-gray-400 line-through">
+                          ₹{course.price}
+                        </p>
+                      ) : (
+                        <p className="text-[10px] text-gray-400">Price</p>
+                      )}
+                    </div>
+                    <div className="flex flex-col items-center">
+                      <span className="inline-flex items-center gap-1 text-sm font-semibold text-gray-900">
+                        <Users className="h-3.5 w-3.5 text-gray-400" />
+                        {course._count.enrollments}
+                      </span>
+                      <p className="text-[10px] text-gray-400">Students</p>
+                    </div>
+                    <div className="flex flex-col items-center">
+                      <span className="inline-flex items-center gap-1 text-sm font-semibold text-gray-900">
+                        <Layers className="h-3.5 w-3.5 text-gray-400" />
+                        {course._count.modules}
+                      </span>
+                      <p className="text-[10px] text-gray-400">Modules</p>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 flex items-center justify-end gap-1 border-t border-gray-100 pt-3">
+                    <a
+                      href={`/admin/courses/${course.id}/curriculum`}
+                      className="rounded-lg p-2 text-gray-500 transition hover:bg-orange-50 hover:text-[#FF9900]"
+                      title="Curriculum"
+                    >
+                      <BookOpen className="h-4 w-4" />
+                    </a>
+                    <button
+                      onClick={() => onEdit(course)}
+                      className="rounded-lg p-2 text-gray-500 transition hover:bg-gray-100 hover:text-gray-700"
+                      title="Edit"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => onDelete(course)}
+                      className="rounded-lg p-2 text-gray-500 transition hover:bg-red-50 hover:text-red-600"
+                      title="Delete"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
           </div>
-        )}
-      </div>
+
+          {/* Desktop: full table (md and up) */}
+          <div className="hidden overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm md:block">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  {table.getHeaderGroups().map((headerGroup) => (
+                    <tr key={headerGroup.id} className="border-b border-gray-100 bg-gray-50">
+                      {headerGroup.headers.map((header) => (
+                        <th
+                          key={header.id}
+                          className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500"
+                        >
+                          {header.isPlaceholder ? null : header.column.getCanSort() ? (
+                            <button
+                              onClick={header.column.getToggleSortingHandler()}
+                              className="inline-flex items-center gap-1 hover:text-gray-800"
+                            >
+                              {flexRender(header.column.columnDef.header, header.getContext())}
+                              {header.column.getIsSorted() === "asc" ? (
+                                <ChevronUp className="h-3.5 w-3.5" />
+                              ) : header.column.getIsSorted() === "desc" ? (
+                                <ChevronDown className="h-3.5 w-3.5" />
+                              ) : (
+                                <ChevronsUpDown className="h-3.5 w-3.5 text-gray-300" />
+                              )}
+                            </button>
+                          ) : (
+                            flexRender(header.column.columnDef.header, header.getContext())
+                          )}
+                        </th>
+                      ))}
+                    </tr>
+                  ))}
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {rows.map((row) => (
+                    <tr key={row.id} className="transition hover:bg-gray-50">
+                      {row.getVisibleCells().map((cell) => (
+                        <td key={cell.id} className="px-5 py-4">
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Pagination */}
       {!loading && totalRows > 0 && (
         <div className="flex flex-col items-center justify-between gap-3 sm:flex-row">
-          {/* Count */}
           <p className="text-xs text-gray-500">
             Showing {from}–{to} of {totalRows} course{totalRows !== 1 ? "s" : ""}
           </p>
 
           <div className="flex items-center gap-3">
-            {/* Page size */}
             <div className="flex items-center gap-2">
               <span className="text-xs text-gray-400">Rows:</span>
               <select
@@ -413,7 +513,6 @@ export default function CourseTable({
               </select>
             </div>
 
-            {/* Prev / Next */}
             <div className="flex items-center gap-1">
               <button
                 onClick={() => table.previousPage()}
