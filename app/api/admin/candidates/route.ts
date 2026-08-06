@@ -16,12 +16,12 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
 
     const search = searchParams.get("search") || "";
-
     const status = searchParams.get("status") || "";
 
+    // Pagination is now optional
     const page = Number(searchParams.get("page") || "1");
-
-    const limit = Number(searchParams.get("limit") || "20");
+    const limitParam = searchParams.get("limit");
+    const limit = limitParam ? Number(limitParam) : undefined;
 
     const where: Record<string, unknown> = {};
 
@@ -101,9 +101,12 @@ export async function GET(req: NextRequest) {
           createdAt: "desc",
         },
 
-        skip: (page - 1) * limit,
-
-        take: limit,
+        ...(limit
+          ? {
+              skip: (page - 1) * limit,
+              take: limit,
+            }
+          : {}),
       }),
 
       prisma.candidate.count({
@@ -115,8 +118,8 @@ export async function GET(req: NextRequest) {
       candidates,
       total,
       page,
-      pages: Math.ceil(total / limit),
-      limit,
+      pages: limit ? Math.ceil(total / limit) : 1,
+      limit: limit ?? total,
     });
   } catch (error) {
     console.error(error);
@@ -160,12 +163,11 @@ export async function PATCH(req: NextRequest) {
       );
     }
 
-    const candidate =
-      await prisma.candidate.findUnique({
-        where: {
-          id,
-        },
-      });
+    const candidate = await prisma.candidate.findUnique({
+      where: {
+        id,
+      },
+    });
 
     if (!candidate) {
       return NextResponse.json(
@@ -178,13 +180,12 @@ export async function PATCH(req: NextRequest) {
       );
     }
 
-    const updated =
-      await prisma.candidate.update({
-        where: {
-          id,
-        },
-        data,
-      });
+    const updated = await prisma.candidate.update({
+      where: {
+        id,
+      },
+      data,
+    });
 
     return NextResponse.json(updated);
   } catch (error) {
