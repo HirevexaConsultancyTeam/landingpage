@@ -4,9 +4,13 @@ import slugify from "slugify";
 
 import { prisma } from "@/lib/prisma";
 import { courseSchema } from "@/lib/validations/course";
+import { requireAdmin } from "@/lib/adminGuard";
 
 export async function GET(req: NextRequest) {
   try {
+    const guard = await requireAdmin();
+    if (guard.error) return guard.error;
+
     const { searchParams } = new URL(req.url);
     const categoryId = searchParams.get("categoryId");
     const published = searchParams.get("published");
@@ -44,9 +48,11 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    const guard = await requireAdmin();
+    if (guard.error) return guard.error;
+
     const body = await req.json();
 
-    // Normalize before parsing
     const normalized = {
       ...body,
       slug: slugify(body.slug || body.title || "", {
@@ -108,8 +114,8 @@ export async function POST(req: NextRequest) {
         discount: parsed.data.discount,
         featured: parsed.data.featured,
         published: parsed.data.published,
-       thumbnailUrl: parsed.data.thumbnailUrl ?? null,
-previewVideoUrl: parsed.data.previewVideoUrl ?? null,
+        thumbnailUrl: parsed.data.thumbnailUrl ?? null,
+        previewVideoUrl: parsed.data.previewVideoUrl ?? null,
         instructor: parsed.data.instructor ?? null,
         duration: parsed.data.duration ?? null,
         categoryId: parsed.data.categoryId ?? null,

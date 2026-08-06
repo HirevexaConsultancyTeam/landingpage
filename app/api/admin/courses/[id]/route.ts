@@ -4,11 +4,15 @@ import slugify from "slugify";
 
 import { prisma } from "@/lib/prisma";
 import { courseSchema } from "@/lib/validations/course";
+import { requireAdmin } from "@/lib/adminGuard";
 
 interface Params { params: Promise<{ id: string }> }
 
 export async function GET(req: NextRequest, { params }: Params) {
   try {
+    const guard = await requireAdmin();
+    if (guard.error) return guard.error;
+
     const { id } = await params;
 
     const course = await prisma.course.findUnique({
@@ -41,6 +45,9 @@ export async function GET(req: NextRequest, { params }: Params) {
 
 export async function PATCH(req: NextRequest, { params }: Params) {
   try {
+    const guard = await requireAdmin();
+    if (guard.error) return guard.error;
+
     const { id } = await params;
     const body = await req.json();
 
@@ -105,8 +112,8 @@ export async function PATCH(req: NextRequest, { params }: Params) {
         discount: parsed.data.discount,
         featured: parsed.data.featured,
         published: parsed.data.published,
-       thumbnailUrl: parsed.data.thumbnailUrl ?? null,
-previewVideoUrl: parsed.data.previewVideoUrl ?? null,
+        thumbnailUrl: parsed.data.thumbnailUrl ?? null,
+        previewVideoUrl: parsed.data.previewVideoUrl ?? null,
         instructor: parsed.data.instructor ?? null,
         duration: parsed.data.duration ?? null,
         categoryId: parsed.data.categoryId ?? null,
@@ -136,6 +143,9 @@ previewVideoUrl: parsed.data.previewVideoUrl ?? null,
 
 export async function DELETE(req: NextRequest, { params }: Params) {
   try {
+    const guard = await requireAdmin();
+    if (guard.error) return guard.error;
+
     const { id } = await params;
 
     const course = await prisma.course.findUnique({

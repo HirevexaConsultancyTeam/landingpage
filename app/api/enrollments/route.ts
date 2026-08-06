@@ -33,7 +33,8 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// POST /api/enrollments — enroll in a course (free for now)
+// POST /api/enrollments — direct enroll, FREE COURSES ONLY.
+// Paid courses must go through /api/payments/create-order + /api/payments/verify.
 export async function POST(req: NextRequest) {
   try {
     const session = await auth();
@@ -52,6 +53,16 @@ export async function POST(req: NextRequest) {
 
     if (!course) {
       return NextResponse.json({ message: "Course not found." }, { status: 404 });
+    }
+
+    // Security check: block this endpoint for any paid course.
+    // Without this, anyone can POST a paid courseId directly and enroll for free.
+    const effectivePrice = course.price - (course.price * course.discount) / 100;
+    if (effectivePrice > 0) {
+      return NextResponse.json(
+        { message: "This course requires payment. Use the checkout flow." },
+        { status: 402 }
+      );
     }
 
     const existing = await prisma.enrollment.findUnique({
