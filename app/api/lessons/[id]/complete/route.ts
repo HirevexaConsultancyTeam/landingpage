@@ -1,11 +1,16 @@
+// ============================================================================
+//  DESTINATION:  app/api/lessons/[id]/complete/route.ts
+//  RENAME THIS FILE TO:  route.ts
+//
+//  If you are getting "SyntaxError: Unexpected end of JSON input" on this
+//  endpoint, the OLD version is still in place — it calls req.json() on a
+//  request the learn page sends with no body. This version never parses a body.
+// ============================================================================
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { canAccessModule, syncCourseProgress } from "@/lib/progress";
-import { isAnswerCorrect, type SubmittedAnswer } from "@/lib/quiz-grading";
 
-// POST /api/quizzes/[id]/submit
-// Body: { attemptId: string, answers: { [questionId]: number | number[] | string } }
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
   if (!session?.user?.id) {
@@ -13,132 +18,46 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   }
 
   const userId = session.user.id;
-  const { id: quizId } = await params;
-  const body = await req.json();
-  const attemptId: string | undefined = body?.attemptId;
-  const answers: Record<string, SubmittedAnswer> = body?.answers ?? {};
+  const { id: lessonId } = await params;
 
-  if (!attemptId) {
-    return NextResponse.json(
-      { message: "attemptId is required. Reopen the assessment." },
-      { status: 400 }
-    );
-  }
+  // NOTE: no req.json() here. The client posts with an empty body.
 
-  const quiz = await prisma.quiz.findUnique({
-    where: { id: quizId },
-    include: { module: { select: { id: true, courseId: true } } },
+  const lesson = await prisma.lesson.findUnique({
+    where: { id: lessonId },
+    select: { id: true, moduleId: true, module: { select: { courseId: true } } },
   });
-  if (!quiz) {
-    return NextResponse.json({ message: "Quiz not found." }, { status: 404 });
+  if (!lesson) {
+    return NextResponse.json({ message: "Lesson not found." }, { status: 404 });
   }
 
-  // Enrolment + module lock in one check.
-  const access = await canAccessModule(userId, quiz.module.id);
+  // Covers enrolment AND module locking in one check.
+  const access = await canAccessModule(userId, lesson.moduleId);
   if (!access.ok) {
     const status = access.reason === "NOT_FOUND" ? 404 : 403;
-    return NextResponse.json(
-      { message: "You can't take this assessment yet.", reason: access.reason },
-      { status }
-    );
+    const message =
+      access.reason === "NOT_ENROLLED"
+        ? "Not enrolled."
+        : "Complete the previous module first.";
+    return NextResponse.json({ message, reason: access.reason }, { status });
   }
 
-  const attempt = await prisma.quizAttempt.findUnique({ where: { id: attemptId } });
-  if (!attempt || attempt.userId !== userId || attempt.quizId !== quizId) {
-    return NextResponse.json({ message: "Attempt not found." }, { status: 404 });
-  }
-  if (attempt.submittedAt) {
-    return NextResponse.json(
-      { message: "This attempt was already submitted. Start a new one." },
-      { status: 409 }
-    );
-  }
-
-  // Grade ONLY the questions this attempt was served — never what the client sends.
-  const questions = await prisma.quizQuestion.findMany({
-    where: { id: { in: attempt.servedQuestionIds } },
-  });
-  const byId = new Map(questions.map((q) => [q.id, q]));
-
-  interface ReviewRow {
-    questionId: string;
-    question: string;
-    type: string;
-    options: string[];
-    points: number;
-    difficulty: string;
-    topic: string | null;
-    submitted: SubmittedAnswer;
-    correctOptions: number[];
-    acceptableAnswers: string[];
-    isCorrect: boolean;
-    explanation: string | null;
-  }
-
-  const review: ReviewRow[] = [];
-  for (const qid of attempt.servedQuestionIds) {
-    const q = byId.get(qid);
-    if (!q) continue;
-
-    const submitted = answers[qid] ?? null;
-
-    review.push({
-      questionId: q.id,
-      question: q.question,
-      type: q.type,
-      options: q.options,
-      points: q.points,
-      difficulty: q.difficulty,
-      topic: q.topic ?? null,
-      submitted,
-      correctOptions: q.correctOptions.length > 0 ? q.correctOptions : [q.correctOption],
-      acceptableAnswers: q.acceptableAnswers,
-      isCorrect: isAnswerCorrect(q, submitted),
-      explanation: q.explanation ?? null,
-    });
-  }
-
-  const pointsPossible = review.reduce((a, r) => a + r.points, 0);
-  const pointsEarned = review.reduce((a, r) => a + (r.isCorrect ? r.points : 0), 0);
-  const score = pointsPossible > 0 ? Math.round((pointsEarned / pointsPossible) * 100) : 0;
-  const passed = score >= quiz.passScore;
-
-  const weakTopics = Array.from(
-    new Set(review.filter((r) => !r.isCorrect && r.topic).map((r) => r.topic as string))
-  );
-
-  await prisma.quizAttempt.update({
-    where: { id: attempt.id },
-    data: {
-      score,
-      passed,
-      pointsEarned,
-      pointsPossible,
-      weakTopics,
-      answers: review as unknown as object[],
-      submittedAt: new Date(),
-    },
+  await prisma.lessonProgress.upsert({
+    where: { userId_lessonId: { userId, lessonId } },
+    create: { userId, lessonId, completed: true, completedAt: new Date() },
+    update: { completed: true, completedAt: new Date() },
   });
 
-  // Recompute locking — this is what actually opens the next module.
-  const progress = await syncCourseProgress(userId, quiz.module.courseId);
-  const thisModule = progress.find((p) => p.moduleId === quiz.module.id);
-  const nextModule = progress
-    .filter((p) => p.order > (thisModule?.order ?? 0) && p.status !== "LOCKED")
-    .sort((a, b) => a.order - b.order)[0];
+  const modules = await syncCourseProgress(userId, lesson.module.courseId);
+
+  const enrollment = await prisma.enrollment.findUnique({
+    where: { userId_courseId: { userId, courseId: lesson.module.courseId } },
+    select: { progress: true, completed: true },
+  });
 
   return NextResponse.json({
-    score,
-    passed,
-    passScore: quiz.passScore,
-    pointsEarned,
-    pointsPossible,
-    correct: review.filter((r) => r.isCorrect).length,
-    total: review.length,
-    attemptNumber: attempt.attemptNumber,
-    weakTopics,
-    review,
-    moduleStatus: thisModule?.status ?? null,
-    unlockedNextModuleId: passed ? (nextModule?.moduleId ?? null) : null,
+    success: true,
+    progress: enrollment?.progress ?? 0,
+    courseCompleted: enrollment?.completed ?? false,
+    modules,
   });
 }

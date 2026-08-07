@@ -106,10 +106,10 @@ export default function MyCoursesPage() {
                       </div>
                     </div>
 
-                    <Link href={`/courses/${course.slug}`}
-                      className="flex items-center justify-center gap-2 w-full bg-[#232F3E] text-white font-semibold text-xs py-2.5 rounded-xl hover:bg-gray-800 transition">
-                      <Play size={13} /> {enrollment.progress > 0 ? "Continue Learning" : "Start Course"}
-                    </Link>
+<Link href={`/dashboard/courses/${course.slug}/learn`}
+  className="flex items-center justify-center gap-2 w-full bg-[#232F3E] text-white font-semibold text-xs py-2.5 rounded-xl hover:bg-gray-800 transition">
+  <Play size={13} /> {enrollment.progress > 0 ? "Continue Learning" : "Start Course"}
+</Link>
                   </div>
                 </div>
               );
