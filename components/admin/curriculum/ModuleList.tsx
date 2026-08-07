@@ -13,6 +13,7 @@ import {
   Eye,
   GripVertical,
   BookOpen,
+  Target,
 } from "lucide-react";
 import ModuleForm from "@/components/admin/curriculum/ModuleForm";
 import LessonForm from "@/components/admin/curriculum/LessonForm";
@@ -70,10 +71,15 @@ export default function ModuleList({
   const [deletingModuleId, setDeletingModuleId] = useState<string | null>(null);
   const [deletingLessonId, setDeletingLessonId] = useState<string | null>(null);
 
+  // Which lesson's drills panel is open. Only one at a time — each ExerciseEditor
+  // fetches on mount, so opening them all at once would fire a request per lesson.
+  const [drillsOpenFor, setDrillsOpenFor] = useState<string | null>(null);
+
   function toggleModule(id: string) {
     setExpandedModules((prev) => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
   }
@@ -84,8 +90,9 @@ export default function ModuleList({
       await axios.delete(`/api/admin/modules/${moduleId}`);
       toast.success("Module deleted.");
       onRefresh();
-    } catch (err: any) {
-      toast.error(err?.response?.data?.message ?? "Failed to delete module.");
+    } catch (err: unknown) {
+      const e = err as { response?: { data?: { message?: string } } };
+      toast.error(e?.response?.data?.message ?? "Failed to delete module.");
     } finally {
       setDeletingModuleId(null);
     }
@@ -97,8 +104,9 @@ export default function ModuleList({
       await axios.delete(`/api/admin/lessons/${lessonId}`);
       toast.success("Lesson deleted.");
       onRefresh();
-    } catch (err: any) {
-      toast.error(err?.response?.data?.message ?? "Failed to delete lesson.");
+    } catch (err: unknown) {
+      const e = err as { response?: { data?: { message?: string } } };
+      toast.error(e?.response?.data?.message ?? "Failed to delete lesson.");
     } finally {
       setDeletingLessonId(null);
     }
@@ -132,17 +140,17 @@ export default function ModuleList({
     moduleId: string,
     direction: "up" | "down"
   ) {
-    const module = modules.find((m) => m.id === moduleId);
-    if (!module) return;
+    const mod = modules.find((m) => m.id === moduleId);
+    if (!mod) return;
 
-    const index = module.lessons.findIndex((l) => l.id === lessonId);
+    const index = mod.lessons.findIndex((l) => l.id === lessonId);
     if (
       (direction === "up" && index === 0) ||
-      (direction === "down" && index === module.lessons.length - 1)
+      (direction === "down" && index === mod.lessons.length - 1)
     )
       return;
 
-    const newOrder = [...module.lessons];
+    const newOrder = [...mod.lessons];
     const swapIndex = direction === "up" ? index - 1 : index + 1;
     [newOrder[index], newOrder[swapIndex]] = [newOrder[swapIndex], newOrder[index]];
 
@@ -292,9 +300,9 @@ export default function ModuleList({
                 )}
 
                 {module.lessons.map((lesson, lessonIndex) => {
-                  const isEditingLesson =
-                    editingLesson?.lesson.id === lesson.id;
+                  const isEditingLesson = editingLesson?.lesson.id === lesson.id;
                   const isDeletingLesson = deletingLessonId === lesson.id;
+                  const drillsOpen = drillsOpenFor === lesson.id;
 
                   return (
                     <div key={lesson.id}>
@@ -311,83 +319,98 @@ export default function ModuleList({
                           />
                         </div>
                       ) : (
-                        <div className="flex items-center gap-3 border-t border-gray-100 px-6 py-3 transition hover:bg-white">
-                          {/* Lesson number */}
-                          <span className="flex-shrink-0 text-xs text-gray-400">
-                            {lessonIndex + 1}.
-                          </span>
-
-                          {/* Video icon */}
-                          <Video className="h-4 w-4 flex-shrink-0 text-gray-300" />
-
-                          {/* Title */}
-                          <div className="flex-1 min-w-0">
-                            <p className="truncate text-sm text-gray-800">
-                              {lesson.title}
-                            </p>
-                            {lesson.duration && (
-                              <p className="mt-0.5 text-xs text-gray-400">
-                                {lesson.duration}
-                              </p>
-                            )}
-                          </div>
-
-                          {/* Preview badge */}
-                          {lesson.isPreview && (
-                            <span className="flex-shrink-0 inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-600">
-                              <Eye className="h-3 w-3" />
-                              Preview
+                        <>
+                          <div className="flex items-center gap-3 border-t border-gray-100 px-6 py-3 transition hover:bg-white">
+                            {/* Lesson number */}
+                            <span className="flex-shrink-0 text-xs text-gray-400">
+                              {lessonIndex + 1}.
                             </span>
+
+                            {/* Video icon */}
+                            <Video className="h-4 w-4 flex-shrink-0 text-gray-300" />
+
+                            {/* Title */}
+                            <div className="flex-1 min-w-0">
+                              <p className="truncate text-sm text-gray-800">
+                                {lesson.title}
+                              </p>
+                              {lesson.duration && (
+                                <p className="mt-0.5 text-xs text-gray-400">
+                                  {lesson.duration}
+                                </p>
+                              )}
+                            </div>
+
+                            {/* Preview badge */}
+                            {lesson.isPreview && (
+                              <span className="flex-shrink-0 inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-600">
+                                <Eye className="h-3 w-3" />
+                                Preview
+                              </span>
+                            )}
+
+                            {/* Move buttons */}
+                            <div className="flex flex-shrink-0 items-center gap-1">
+                              <button
+                                onClick={() => moveLesson(lesson.id, module.id, "up")}
+                                disabled={lessonIndex === 0}
+                                className="rounded p-1 text-gray-300 transition hover:bg-gray-100 hover:text-gray-600 disabled:cursor-not-allowed disabled:opacity-30"
+                                title="Move up"
+                              >
+                                <ChevronDown className="h-3.5 w-3.5 rotate-180" />
+                              </button>
+                              <button
+                                onClick={() => moveLesson(lesson.id, module.id, "down")}
+                                disabled={lessonIndex === module.lessons.length - 1}
+                                className="rounded p-1 text-gray-300 transition hover:bg-gray-100 hover:text-gray-600 disabled:cursor-not-allowed disabled:opacity-30"
+                                title="Move down"
+                              >
+                                <ChevronDown className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+
+                            {/* Drills / Edit / Delete */}
+                            <div className="flex flex-shrink-0 items-center gap-1">
+                              <button
+                                onClick={() =>
+                                  setDrillsOpenFor(drillsOpen ? null : lesson.id)
+                                }
+                                className={`rounded-lg p-1.5 transition ${
+                                  drillsOpen
+                                    ? "bg-amber-100 text-amber-600"
+                                    : "text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+                                }`}
+                                title="Practice drills"
+                              >
+                                <Target className="h-3.5 w-3.5" />
+                              </button>
+                              <button
+                                onClick={() =>
+                                  setEditingLesson({ lesson, moduleId: module.id })
+                                }
+                                className="rounded-lg p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700"
+                                title="Edit lesson"
+                              >
+                                <Pencil className="h-3.5 w-3.5" />
+                              </button>
+                              <button
+                                onClick={() => deleteLesson(lesson.id)}
+                                disabled={isDeletingLesson}
+                                className="rounded-lg p-1.5 text-gray-400 transition hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+                                title="Delete lesson"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Per-lesson practice drills */}
+                          {drillsOpen && (
+                            <div className="border-t border-gray-100 bg-white px-6 py-4">
+                              <ExerciseEditor lessonId={lesson.id} />
+                            </div>
                           )}
-
-                          {/* Move buttons */}
-                          <div className="flex flex-shrink-0 items-center gap-1">
-                            <button
-                              onClick={() =>
-                                moveLesson(lesson.id, module.id, "up")
-                              }
-                              disabled={lessonIndex === 0}
-                              className="rounded p-1 text-gray-300 transition hover:bg-gray-100 hover:text-gray-600 disabled:cursor-not-allowed disabled:opacity-30"
-                              title="Move up"
-                            >
-                              <ChevronDown className="h-3.5 w-3.5 rotate-180" />
-                            </button>
-                            <button
-                              onClick={() =>
-                                moveLesson(lesson.id, module.id, "down")
-                              }
-                              disabled={lessonIndex === module.lessons.length - 1}
-                              className="rounded p-1 text-gray-300 transition hover:bg-gray-100 hover:text-gray-600 disabled:cursor-not-allowed disabled:opacity-30"
-                              title="Move down"
-                            >
-                              <ChevronDown className="h-3.5 w-3.5" />
-                            </button>
-                          </div>
-
-                          {/* Edit / Delete */}
-                          <div className="flex flex-shrink-0 items-center gap-1">
-                            <button
-                              onClick={() =>
-                                setEditingLesson({
-                                  lesson,
-                                  moduleId: module.id,
-                                })
-                              }
-                              className="rounded-lg p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700"
-                              title="Edit lesson"
-                            >
-                              <Pencil className="h-3.5 w-3.5" />
-                            </button>
-                            <button
-                              onClick={() => deleteLesson(lesson.id)}
-                              disabled={isDeletingLesson}
-                              className="rounded-lg p-1.5 text-gray-400 transition hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
-                              title="Delete lesson"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </button>
-                          </div>
-                        </div>
+                        </>
                       )}
                     </div>
                   );
@@ -417,6 +440,7 @@ export default function ModuleList({
                     </button>
                   )}
                 </div>
+
                 {/* Assessment */}
                 <div className="border-t border-gray-100 p-4">
                   <QuizEditor moduleId={module.id} />

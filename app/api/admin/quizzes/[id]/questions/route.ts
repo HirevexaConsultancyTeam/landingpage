@@ -1,40 +1,89 @@
+// ============================================================================
+//  DESTINATION:  app/api/admin/quizzes/[id]/questions/route.ts
+//  RENAME THIS FILE TO:  route.ts
+//  This file contains ONLY a POST handler. It creates a new question.
+// ============================================================================
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/adminGuard";
 
-interface Params { params: Promise<{ id: string }> }
+const NEEDS_OPTIONS = ["MCQ", "MULTIPLE_SELECT", "TRUE_FALSE", "OUTPUT_PREDICTION"];
+const NEEDS_TEXT = ["FILL_BLANK", "SHORT_ANSWER"];
 
-export async function PATCH(req: NextRequest, { params }: Params) {
+// POST /api/admin/quizzes/[id]/questions
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const guard = await requireAdmin();
   if (guard.error) return guard.error;
 
-  const { id } = await params;
-  const body = await req.json();
+  const { id: quizId } = await params;
+  const {
+    question,
+    options = [],
+    correctOptions = [],
+    acceptableAnswers = [],
+    type = "MCQ",
+    difficulty = "MEDIUM",
+    points = 1,
+    topic,
+    explanation,
+  } = await req.json();
 
-  const data: Record<string, unknown> = {};
-  if (body.question !== undefined) data.question = body.question;
-  if (body.options !== undefined) data.options = body.options;
-  if (body.acceptableAnswers !== undefined) data.acceptableAnswers = body.acceptableAnswers;
-  if (body.type !== undefined) data.type = body.type;
-  if (body.difficulty !== undefined) data.difficulty = body.difficulty;
-  if (body.points !== undefined) data.points = Number(body.points) || 1;
-  if (body.topic !== undefined) data.topic = body.topic?.trim() || null;
-  if (body.explanation !== undefined) data.explanation = body.explanation?.trim() || null;
-  if (body.order !== undefined) data.order = body.order;
-
-  if (body.correctOptions !== undefined) {
-    data.correctOptions = body.correctOptions;
-    data.correctOption = body.correctOptions[0] ?? 0; // keep the legacy field in step
+  if (!question?.trim()) {
+    return NextResponse.json({ message: "A question is required." }, { status: 400 });
   }
 
-  const updated = await prisma.quizQuestion.update({ where: { id }, data });
-  return NextResponse.json(updated);
-}
+  const quiz = await prisma.quiz.findUnique({ where: { id: quizId }, select: { id: true } });
+  if (!quiz) {
+    return NextResponse.json({ message: "Quiz not found." }, { status: 404 });
+  }
 
-export async function DELETE(req: NextRequest, { params }: Params) {
-  const guard = await requireAdmin();
-  if (guard.error) return guard.error;
-  const { id } = await params;
-  await prisma.quizQuestion.delete({ where: { id } });
-  return NextResponse.json({ message: "Question deleted." });
+  if (NEEDS_OPTIONS.includes(type)) {
+    if (!Array.isArray(options) || options.length < 2) {
+      return NextResponse.json({ message: "Add at least two options." }, { status: 400 });
+    }
+    if (!Array.isArray(correctOptions) || correctOptions.length === 0) {
+      return NextResponse.json({ message: "Mark at least one option as correct." }, { status: 400 });
+    }
+    if (type !== "MULTIPLE_SELECT" && correctOptions.length > 1) {
+      return NextResponse.json(
+        { message: "Only multiple-select questions can have more than one correct option." },
+        { status: 400 }
+      );
+    }
+    const outOfRange = correctOptions.some((i: number) => i < 0 || i >= options.length);
+    if (outOfRange) {
+      return NextResponse.json(
+        { message: "A correct option points at a choice that doesn't exist." },
+        { status: 400 }
+      );
+    }
+  }
+
+  if (NEEDS_TEXT.includes(type) && (!Array.isArray(acceptableAnswers) || acceptableAnswers.length === 0)) {
+    return NextResponse.json(
+      { message: "Add at least one accepted answer for a typed question." },
+      { status: 400 }
+    );
+  }
+
+  const count = await prisma.quizQuestion.count({ where: { quizId } });
+
+  const created = await prisma.quizQuestion.create({
+    data: {
+      quizId,
+      question: question.trim(),
+      options,
+      correctOptions,
+      correctOption: correctOptions[0] ?? 0, // legacy mirror, keeps old readers working
+      acceptableAnswers,
+      type,
+      difficulty,
+      points: Number(points) || 1,
+      topic: topic?.trim() || null,
+      explanation: explanation?.trim() || null,
+      order: count + 1,
+    },
+  });
+
+  return NextResponse.json(created, { status: 201 });
 }
