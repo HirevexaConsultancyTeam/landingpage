@@ -24,7 +24,7 @@ export default function RegistrationPaymentPage() {
           className="w-full bg-[#FF9900] hover:bg-[#e88d00] text-gray-900 font-bold py-3 rounded-xl text-sm transition"
           userEmail={session?.user?.email ?? undefined}
           userName={session?.user?.name ?? undefined}
-          onSuccess={() => router.push("/dashboard")}
+          onSuccess={() => router.push("/skill-courses")}
         />
       </div>
     </div>

@@ -23,6 +23,8 @@ model User {
   lessonProgress   LessonProgress[]
   quizAttempts     QuizAttempt[]
   certificates     Certificate[]
+  moduleProgress   ModuleProgress[]  // NEW
+  exerciseAttempts ExerciseAttempt[] // NEW
 }
 
 model Candidate {
@@ -141,33 +143,93 @@ model CourseModule {
   description String?
   order       Int
   courseId    String
+
+  // NEW — structural fields the demo relies on
+  slug        String?  // stable URL segment, e.g. "core-language"
+  summary     String?  // 1–3 sentence blurb shown on the module card
+  icon        String?  // lucide icon name, e.g. "target" / "award"
+  isFinalExam Boolean  @default(false) // only unlocks once every other module is COMPLETED
+
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  course      Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
   lessons     Lesson[]
   quiz        Quiz?
+  progress    ModuleProgress[] // NEW
 
+  @@unique([courseId, slug])
   @@index([courseId])
 }
 
 model Lesson {
-  id          String           @id @default(cuid())
+  id          String  @id @default(cuid())
   title       String
   description String?
-  content     String?          @db.Text   // ← new: pasted lesson content (long-form)
+  content     String? @db.Text // LEGACY — free-text fallback, kept so existing rows aren't lost
   videoUrl    String?
   notesUrl    String?
-  duration    String?
-  isPreview   Boolean          @default(false)
+  duration    String? // LEGACY — "mm:ss" string; prefer durationMinutes below
+  isPreview   Boolean @default(false)
   order       Int
   moduleId    String
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
-  resources   CourseResource[]
-  module      CourseModule     @relation(fields: [moduleId], references: [id], onDelete: Cascade)
-  progress    LessonProgress[]
 
+  // NEW — structured lesson body
+  slug               String?
+  durationMinutes    Int?
+  learningObjectives String[] // bullet list shown at the top of the lesson
+  theory             String?  @db.Text // long-form markdown body
+  codeExamples       Json?    // [{ title, language, code, output, notes }]
+  visualExamples     Json?    // [{ caption, diagramSvg }]
+  interviewTips      String[]
+  commonMistakes     String[]
+  bestPractices      String[]
+  realWorldExample   String?  @db.Text
+  summary            String?  @db.Text // "key takeaways" block at the end
+
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  resources CourseResource[]
+  module    CourseModule     @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  progress  LessonProgress[]
+  exercises Exercise[] // NEW
+
+  @@unique([moduleId, slug])
   @@index([moduleId])
+}
+
+// NEW — per-lesson drills (MCQ, output prediction, etc.)
+model Exercise {
+  id          String       @id @default(cuid())
+  lessonId    String
+  order       Int
+  type        ExerciseType @default(MCQ)
+  prompt      String       @db.Text
+  payload     Json // MCQ: { options: string[], correctIndex: number }
+  // OUTPUT_PREDICTION: { options: string[], correctIndex: number }
+  // SHORT_ANSWER:      { acceptable: string[] }
+  hint        String?      @db.Text
+  solution    String?      @db.Text // the bare answer
+  explanation String?      @db.Text // why that answer is right
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  lesson      Lesson            @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  attempts    ExerciseAttempt[]
+
+  @@index([lessonId])
+}
+
+// NEW
+model ExerciseAttempt {
+  id         String   @id @default(cuid())
+  userId     String
+  exerciseId String
+  response   Json // whatever the student submitted
+  isCorrect  Boolean
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  exercise   Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+
+  @@index([userId, exerciseId])
 }
 
 model LessonProgress {
@@ -183,37 +245,61 @@ model LessonProgress {
   @@index([userId])
 }
 
+// NEW — drives the locked / unlocked UI
+model ModuleProgress {
+  id            String       @id @default(cuid())
+  userId        String
+  moduleId      String
+  status        ModuleStatus @default(LOCKED)
+  bestQuizScore Int          @default(0)
+  unlockedAt    DateTime?
+  completedAt   DateTime?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  module        CourseModule @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, moduleId])
+  @@index([userId])
+}
+
 model Quiz {
   id        String         @id @default(cuid())
   moduleId  String         @unique
   title     String
-  passScore Int            @default(70)
+  passScore Int            @default(70) // single source of truth for the pass threshold
   module    CourseModule   @relation(fields: [moduleId], references: [id], onDelete: Cascade)
   questions QuizQuestion[]
   attempts  QuizAttempt[]
 }
 
 model QuizQuestion {
-  id            String @id @default(cuid())
+  id            String   @id @default(cuid())
   quizId        String
   question      String
   options       String[]
   correctOption Int
   order         Int
-  quiz          Quiz   @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  explanation   String?  @db.Text // NEW — shown in answer review
+  topic         String?  // NEW — feeds the "topics to revise" list
+  quiz          Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
 
   @@index([quizId])
 }
 
 model QuizAttempt {
-  id        String   @id @default(cuid())
-  userId    String
-  quizId    String
-  score     Int
-  passed    Boolean
-  createdAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  quiz      Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  id            String   @id @default(cuid())
+  userId        String
+  quizId        String
+  score         Int
+  passed        Boolean
+  attemptNumber Int      @default(1) // NEW
+  startedAt     DateTime? // NEW — set when the quiz is opened
+  answers       Json? // NEW — [{ questionId, selected, correct, isCorrect }] for review
+  weakTopics    String[] // NEW — distinct topics of wrong answers
+  createdAt     DateTime @default(now())
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  quiz          Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([quizId])
@@ -314,6 +400,7 @@ model CourseResource {
   @@index([lessonId])
 }
 
+// Leftover from the Neon starter template — safe to delete if nothing references it.
 model playing_with_neon {
   id    Int    @id @default(autoincrement())
   name  String
@@ -369,6 +456,21 @@ enum CourseLevel {
   BEGINNER
   INTERMEDIATE
   ADVANCED
+}
+
+// NEW
+enum ModuleStatus {
+  LOCKED
+  UNLOCKED
+  IN_PROGRESS
+  COMPLETED
+}
+
+// NEW
+enum ExerciseType {
+  MCQ
+  OUTPUT_PREDICTION
+  SHORT_ANSWER
 }
 
 enum OrderStatus {

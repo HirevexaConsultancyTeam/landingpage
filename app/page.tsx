@@ -223,7 +223,7 @@ export default function HomePage() {
               ) : (
                 <p className="text-gray-300 text-base sm:text-lg mb-8 max-w-xl mx-auto lg:mx-0 leading-relaxed">
                   HireVexa helps freshers bridge the gap between campus and career —
-                  with personalised counselling, resume building, and direct placement support.
+                  with personalised counselling, resume building, and placement support.
                 </p>
               )}
 
