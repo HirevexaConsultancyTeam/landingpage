@@ -7,13 +7,26 @@ interface Params { params: Promise<{ id: string }> }
 
 const updateLessonSchema = z.object({
   title: z.string().trim().min(2).max(120).optional(),
-  description: z.string().trim().optional().nullable(),
-  content: z.string().trim().optional().nullable(),
-  videoUrl: z.string().trim().optional().nullable(),
-  notesUrl: z.string().trim().optional().nullable(),
-  duration: z.string().trim().optional().nullable(),
+  description: z.string().trim().nullish(),
+  content: z.string().trim().nullish(),
+  videoUrl: z.string().trim().nullish(),
+  notesUrl: z.string().trim().nullish(),
+  duration: z.string().trim().nullish(),
   isPreview: z.boolean().optional(),
   order: z.number().int().min(1).optional(),
+
+  slug: z.string().trim().nullish(),
+  durationMinutes: z.coerce.number().int().positive().nullish(),
+  learningObjectives: z.array(z.string()).nullish(),
+  theory: z.string().nullish(),
+  codeExamples: z.any().nullish(),
+  visualExamples: z.any().nullish(),
+  notes: z.string().nullish(),
+  interviewTips: z.array(z.string()).nullish(),
+  commonMistakes: z.array(z.string()).nullish(),
+  bestPractices: z.array(z.string()).nullish(),
+  realWorldExample: z.string().nullish(),
+  summary: z.string().nullish(),
 });
 
 const reorderSchema = z.object({ orderedIds: z.array(z.string()).min(1) });
@@ -23,7 +36,10 @@ export async function GET(req: NextRequest, { params }: Params) {
   if (guard.error) return guard.error;
   try {
     const { id } = await params;
-    const lesson = await prisma.lesson.findUnique({ where: { id }, include: { resources: true } });
+    const lesson = await prisma.lesson.findUnique({
+      where: { id },
+      include: { resources: true, exercises: { orderBy: { order: "asc" } } },
+    });
     if (!lesson) return NextResponse.json({ message: "Lesson not found." }, { status: 404 });
     return NextResponse.json(lesson);
   } catch (error) {
@@ -35,13 +51,16 @@ export async function GET(req: NextRequest, { params }: Params) {
 export async function PATCH(req: NextRequest, { params }: Params) {
   const guard = await requireAdmin();
   if (guard.error) return guard.error;
+
   try {
     const { id } = await params;
     const body = await req.json();
 
     if (body.reorder && Array.isArray(body.orderedIds)) {
       const parsed = reorderSchema.safeParse(body);
-      if (!parsed.success) return NextResponse.json({ message: "Invalid reorder payload." }, { status: 400 });
+      if (!parsed.success) {
+        return NextResponse.json({ message: "Invalid reorder payload." }, { status: 400 });
+      }
       await prisma.$transaction(
         parsed.data.orderedIds.map((lessonId, index) =>
           prisma.lesson.update({ where: { id: lessonId }, data: { order: index + 1 } })
@@ -52,13 +71,29 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 
     const parsed = updateLessonSchema.safeParse(body);
     if (!parsed.success) {
-      return NextResponse.json({ message: "Validation failed.", errors: parsed.error.flatten() }, { status: 400 });
+      return NextResponse.json(
+        { message: "Validation failed.", errors: parsed.error.flatten() },
+        { status: 400 }
+      );
     }
 
     const lesson = await prisma.lesson.findUnique({ where: { id } });
     if (!lesson) return NextResponse.json({ message: "Lesson not found." }, { status: 404 });
 
-    const updated = await prisma.lesson.update({ where: { id }, data: parsed.data, include: { resources: true } });
+    // Only write keys that were actually sent, so a partial edit can't blank a
+    // field the form didn't include.
+    const data: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(parsed.data)) {
+      if (value === undefined) continue;
+      if (key === "slug") data.slug = value || null;
+      else data[key] = value;
+    }
+
+    const updated = await prisma.lesson.update({
+      where: { id },
+      data,
+      include: { resources: true },
+    });
     return NextResponse.json(updated);
   } catch (error) {
     console.error(error);
@@ -76,7 +111,10 @@ export async function DELETE(req: NextRequest, { params }: Params) {
 
     await prisma.lesson.delete({ where: { id } });
 
-    const remaining = await prisma.lesson.findMany({ where: { moduleId: lesson.moduleId }, orderBy: { order: "asc" } });
+    const remaining = await prisma.lesson.findMany({
+      where: { moduleId: lesson.moduleId },
+      orderBy: { order: "asc" },
+    });
     await prisma.$transaction(
       remaining.map((l, index) => prisma.lesson.update({ where: { id: l.id }, data: { order: index + 1 } }))
     );
