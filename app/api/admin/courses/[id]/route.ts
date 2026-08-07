@@ -1,3 +1,7 @@
+// ============================================================================
+//  DESTINATION:  app/api/admin/courses/[id]/route.ts
+//  RENAME THIS FILE TO:  route.ts
+// ============================================================================
 import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import slugify from "slugify";
@@ -43,6 +47,17 @@ export async function GET(req: NextRequest, { params }: Params) {
   }
 }
 
+/**
+ * PATCH /api/admin/courses/[id]
+ *
+ * Validates with `courseSchema.partial()` so only the fields actually sent are
+ * checked. The previous version ran the full create schema on every request,
+ * which meant a publish toggle sending `{ published: false }` was rejected for
+ * a description it never touched — and courses whose descriptions predate the
+ * 20-character rule could not be edited at all.
+ *
+ * Rules still apply to whatever IS sent: a 5-character description still fails.
+ */
 export async function PATCH(req: NextRequest, { params }: Params) {
   try {
     const guard = await requireAdmin();
@@ -51,23 +66,28 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     const { id } = await params;
     const body = await req.json();
 
-    const normalized = {
-      ...body,
-      slug: slugify(body.slug || body.title || "", {
-        lower: true, strict: true, trim: true,
-      }),
-      price: body.price === "" || body.price === undefined ? 0 : body.price,
-      discount: body.discount === "" || body.discount === undefined ? 0 : body.discount,
-      featured: body.featured ?? false,
-      published: body.published ?? false,
-      categoryId: body.categoryId || null,
-      thumbnailUrl: body.thumbnailUrl || null,
-      previewVideoUrl: body.previewVideoUrl || null,
-      instructor: body.instructor || null,
-      duration: body.duration || null,
-    };
+    // Normalise only the keys present. Defaulting absent keys (the old
+    // `body.featured ?? false`) silently unfeatured a course on any partial
+    // update that didn't mention it.
+    const normalized: Record<string, unknown> = { ...body };
 
-    const parsed = courseSchema.safeParse(normalized);
+    if (body.slug !== undefined || body.title !== undefined) {
+      const source = body.slug || body.title || "";
+      if (source) {
+        normalized.slug = slugify(source, { lower: true, strict: true, trim: true });
+      } else {
+        delete normalized.slug;
+      }
+    }
+
+    if (body.price !== undefined) normalized.price = body.price === "" ? 0 : Number(body.price);
+    if (body.discount !== undefined) normalized.discount = body.discount === "" ? 0 : Number(body.discount);
+
+    for (const key of ["categoryId", "thumbnailUrl", "previewVideoUrl", "instructor", "duration"] as const) {
+      if (body[key] !== undefined) normalized[key] = body[key] || null;
+    }
+
+    const parsed = courseSchema.partial().safeParse(normalized);
 
     if (!parsed.success) {
       console.error("Course PATCH validation errors:", JSON.stringify(parsed.error.flatten(), null, 2));
@@ -82,14 +102,17 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       return NextResponse.json({ message: "Course not found." }, { status: 404 });
     }
 
-    const duplicate = await prisma.course.findFirst({
-      where: { id: { not: id }, slug: parsed.data.slug },
-    });
-    if (duplicate) {
-      return NextResponse.json(
-        { message: "Another course already has this slug." },
-        { status: 409 }
-      );
+    // Only worth checking when the slug is actually changing.
+    if (parsed.data.slug && parsed.data.slug !== course.slug) {
+      const duplicate = await prisma.course.findFirst({
+        where: { id: { not: id }, slug: parsed.data.slug },
+      });
+      if (duplicate) {
+        return NextResponse.json(
+          { message: "Another course already has this slug." },
+          { status: 409 }
+        );
+      }
     }
 
     if (parsed.data.categoryId) {
@@ -99,38 +122,45 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       }
     }
 
+    // Write only what was sent, so a partial update can't blank a field the
+    // caller never mentioned.
+    const data: Prisma.CourseUpdateInput = {};
+    const d = parsed.data;
+
+    if (d.title !== undefined) data.title = d.title;
+    if (d.slug !== undefined) data.slug = d.slug;
+    if (d.shortDescription !== undefined) data.shortDescription = d.shortDescription;
+    if (d.description !== undefined) data.description = d.description;
+    if (d.language !== undefined) data.language = d.language;
+    if (d.level !== undefined) data.level = d.level;
+    if (d.price !== undefined) data.price = d.price;
+    if (d.discount !== undefined) data.discount = d.discount;
+    if (d.featured !== undefined) data.featured = d.featured;
+    if (d.published !== undefined) data.published = d.published;
+    if (d.thumbnailUrl !== undefined) data.thumbnailUrl = d.thumbnailUrl ?? null;
+    if (d.previewVideoUrl !== undefined) data.previewVideoUrl = d.previewVideoUrl ?? null;
+    if (d.instructor !== undefined) data.instructor = d.instructor ?? null;
+    if (d.duration !== undefined) data.duration = d.duration ?? null;
+
+    if (d.categoryId !== undefined) {
+      data.category = d.categoryId ? { connect: { id: d.categoryId } } : { disconnect: true };
+    }
+
+    if (Object.keys(data).length === 0) {
+      return NextResponse.json({ message: "Nothing to update." }, { status: 400 });
+    }
+
     const updated = await prisma.course.update({
       where: { id },
-      data: {
-        title: parsed.data.title,
-        slug: parsed.data.slug,
-        shortDescription: parsed.data.shortDescription,
-        description: parsed.data.description,
-        language: parsed.data.language,
-        level: parsed.data.level,
-        price: parsed.data.price,
-        discount: parsed.data.discount,
-        featured: parsed.data.featured,
-        published: parsed.data.published,
-        thumbnailUrl: parsed.data.thumbnailUrl ?? null,
-        previewVideoUrl: parsed.data.previewVideoUrl ?? null,
-        instructor: parsed.data.instructor ?? null,
-        duration: parsed.data.duration ?? null,
-        categoryId: parsed.data.categoryId ?? null,
-      },
-      include: {
-        category: { select: { id: true, name: true } },
-      },
+      data,
+      include: { category: { select: { id: true, name: true } } },
     });
 
     return NextResponse.json(updated);
   } catch (error) {
     console.error("Course PATCH error:", error);
 
-    if (
-      error instanceof Prisma.PrismaClientKnownRequestError &&
-      error.code === "P2002"
-    ) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
       return NextResponse.json(
         { message: "A course with this slug already exists." },
         { status: 409 }

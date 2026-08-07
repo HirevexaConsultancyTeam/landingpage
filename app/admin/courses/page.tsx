@@ -34,22 +34,13 @@ export default function CoursesPage() {
   async function handleTogglePublish(course: CourseRow) {
     try {
       await axios.patch(`/api/admin/courses/${course.id}`, {
-        title: course.title,
-        slug: course.slug,
-        shortDescription: course.slug,
-        description: course.slug,
-        language: course.language,
-        level: course.level,
-        price: course.price,
-        discount: course.discount,
-        featured: course.featured,
         published: !course.published,
-        categoryId: course.category?.id ?? null,
       });
       toast.success(course.published ? "Course unpublished." : "Course published.");
       fetchCourses();
-    } catch {
-      toast.error("Failed to update course status.");
+    } catch (err: unknown) {
+      const e = err as { response?: { data?: { message?: string } } };
+      toast.error(e?.response?.data?.message ?? "Failed to update course status.");
     }
   }
 
