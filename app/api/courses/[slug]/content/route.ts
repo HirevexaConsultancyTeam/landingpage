@@ -1,82 +1,155 @@
+// ┌──────────────────────────────────────────────────────────────────────────┐
+// │  PLACE AT: app/api/courses/[slug]/content/route.ts                       │
+// │  Note the /content/ subfolder. This is the ENROLLED-ONLY route.          │
+// └──────────────────────────────────────────────────────────────────────────┘
 import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { isEnrolled, syncCourseProgress } from "@/lib/progress";
 
 interface Params {
   params: Promise<{ slug: string }>;
 }
 
-// GET /api/courses/[slug] — PUBLIC. Powers the sales page only.
+// GET /api/courses/[slug]/content — ENROLLED ONLY.
 //
-// SECURITY: this endpoint is unauthenticated, so it must never return lesson
-// bodies or the videoUrl of a non-preview lesson. The previous version selected
-// videoUrl for every lesson regardless of isPreview, which meant
-// `curl /api/courses/<slug>` returned the entire paid course.
+// Full course tree with lesson bodies, but only for modules the student has
+// unlocked. Locked modules return titles and counts so the sidebar can render
+// them greyed out, with no content attached.
 //
-// Enrolled students get their content from /api/courses/[slug]/content instead.
+// This is the endpoint the learn page calls.
 export async function GET(req: NextRequest, { params }: Params) {
-  try {
-    const { slug } = await params;
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ message: "Unauthorized." }, { status: 401 });
+  }
 
-    const course = await prisma.course.findUnique({
-      where: { slug, published: true },
-      include: {
-        category: { select: { id: true, name: true, slug: true } },
-        modules: {
-          orderBy: { order: "asc" },
-          select: {
-            id: true,
-            title: true,
-            description: true,
-            summary: true,
-            icon: true,
-            order: true,
-            slug: true,
-            isFinalExam: true,
-            quiz: { select: { id: true } },
-            lessons: {
-              orderBy: { order: "asc" },
-              select: {
-                id: true,
-                title: true,
-                description: true,
-                duration: true,
-                durationMinutes: true,
-                isPreview: true,
-                order: true,
-                videoUrl: true, // filtered out below unless isPreview
+  const userId = session.user.id;
+  const { slug } = await params;
+
+  const course = await prisma.course.findUnique({
+    where: { slug, published: true },
+    select: {
+      id: true,
+      title: true,
+      slug: true,
+      instructor: true,
+      level: true,
+      modules: {
+        orderBy: { order: "asc" },
+        select: {
+          id: true,
+          title: true,
+          description: true,
+          summary: true,
+          icon: true,
+          order: true,
+          slug: true,
+          isFinalExam: true,
+          quiz: { select: { id: true, title: true, passScore: true } },
+          lessons: {
+            orderBy: { order: "asc" },
+            select: {
+              id: true,
+              title: true,
+              description: true,
+              slug: true,
+              order: true,
+              isPreview: true,
+              duration: true,
+              durationMinutes: true,
+              videoUrl: true,
+              notesUrl: true,
+              content: true,
+              theory: true,
+              learningObjectives: true,
+              codeExamples: true,
+              visualExamples: true,
+              notes: true,
+              interviewTips: true,
+              commonMistakes: true,
+              bestPractices: true,
+              realWorldExample: true,
+              summary: true,
+              exercises: {
+                orderBy: { order: "asc" },
+                select: {
+                  id: true,
+                  order: true,
+                  type: true,
+                  prompt: true,
+                  payload: true,
+                  hint: true,
+                  starterCode: true,
+                  // solution + explanation withheld until the student answers
+                },
               },
             },
           },
         },
-        reviews: {
-          take: 6,
-          orderBy: { createdAt: "desc" },
-          include: { user: { select: { email: true } } },
-        },
-        _count: { select: { enrollments: true, reviews: true } },
       },
-    });
+    },
+  });
 
-    if (!course) {
-      return NextResponse.json({ message: "Course not found." }, { status: 404 });
-    }
-
-    const safe = {
-      ...course,
-      modules: course.modules.map((m) => ({
-        ...m,
-        hasQuiz: Boolean(m.quiz),
-        quiz: undefined,
-        lessons: m.lessons.map((l) => ({
-          ...l,
-          videoUrl: l.isPreview ? l.videoUrl : null,
-        })),
-      })),
-    };
-
-    return NextResponse.json(safe);
-  } catch (error) {
-    console.error(error);
-    return NextResponse.json({ message: "Failed to fetch course." }, { status: 500 });
+  if (!course) {
+    return NextResponse.json({ message: "Course not found." }, { status: 404 });
   }
+
+  if (!(await isEnrolled(userId, course.id))) {
+    return NextResponse.json({ message: "You are not enrolled in this course." }, { status: 403 });
+  }
+
+  const progress = await syncCourseProgress(userId, course.id);
+  const statusByModule = new Map(progress.map((p) => [p.moduleId, p]));
+
+  const completedLessons = await prisma.lessonProgress.findMany({
+    where: { userId, completed: true, lesson: { module: { courseId: course.id } } },
+    select: { lessonId: true },
+  });
+  const doneLessonIds = new Set(completedLessons.map((l) => l.lessonId));
+
+  const modules = course.modules.map((m) => {
+    const view = statusByModule.get(m.id);
+    const locked = !view || view.status === "LOCKED";
+
+    return {
+      id: m.id,
+      title: m.title,
+      description: m.description,
+      summary: m.summary,
+      icon: m.icon,
+      order: m.order,
+      slug: m.slug,
+      isFinalExam: m.isFinalExam,
+      status: view?.status ?? "LOCKED",
+      bestQuizScore: view?.bestQuizScore ?? 0,
+      lessonsTotal: view?.lessonsTotal ?? m.lessons.length,
+      lessonsCompleted: view?.lessonsCompleted ?? 0,
+      quiz: locked ? null : m.quiz,
+      hasQuiz: Boolean(m.quiz),
+      // Locked modules expose titles only — never bodies, videos or exercises.
+      lessons: m.lessons.map((l) =>
+        locked
+          ? {
+              id: l.id,
+              title: l.title,
+              order: l.order,
+              durationMinutes: l.durationMinutes,
+              duration: l.duration,
+              locked: true,
+              completed: false,
+            }
+          : { ...l, locked: false, completed: doneLessonIds.has(l.id) }
+      ),
+    };
+  });
+
+  return NextResponse.json({
+    id: course.id,
+    title: course.title,
+    slug: course.slug,
+    instructor: course.instructor,
+    level: course.level,
+    modules,
+  });
 }
