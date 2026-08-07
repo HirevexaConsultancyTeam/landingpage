@@ -8,41 +8,21 @@ datasource db {
 }
 
 model User {
-  id          String       @id @default(cuid())
-  email       String       @unique
-  mobile      String?      @unique
-  password    String
-  role        Role         @default(CANDIDATE)
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  candidate   Candidate?
-  enrollments Enrollment[]
-  orders      Order[]
-  reviews     Review[]
-  registrationPaid Boolean @default(false)
-}
-
-model Order {
-  id              String      @id @default(cuid())
-  userId          String
-  courseId        String?     // now optional
-  type            OrderType   @default(COURSE)
-  amount          Float
-  status          OrderStatus @default(CREATED)
-  razorpayOrderId String?     @unique
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
-  course          Course?     @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  payment         Payment?
-
-  @@index([userId])
-  @@index([courseId])
-}
-
-enum OrderType {
-  COURSE
-  REGISTRATION
+  id               String           @id @default(cuid())
+  email            String           @unique
+  mobile           String?          @unique
+  password         String
+  role             Role             @default(CANDIDATE)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  registrationPaid Boolean          @default(false)
+  candidate        Candidate?
+  enrollments      Enrollment[]
+  orders           Order[]
+  reviews          Review[]
+  lessonProgress   LessonProgress[]
+  quizAttempts     QuizAttempt[]
+  certificates     Certificate[]
 }
 
 model Candidate {
@@ -152,6 +132,7 @@ model Course {
   enrollments      Enrollment[]
   orders           Order[]
   reviews          Review[]
+  certificates     Certificate[]
 }
 
 model CourseModule {
@@ -164,6 +145,7 @@ model CourseModule {
   updatedAt   DateTime @updatedAt
   course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
   lessons     Lesson[]
+  quiz        Quiz?
 
   @@index([courseId])
 }
@@ -172,6 +154,7 @@ model Lesson {
   id          String           @id @default(cuid())
   title       String
   description String?
+  content     String?          @db.Text   // ← new: pasted lesson content (long-form)
   videoUrl    String?
   notesUrl    String?
   duration    String?
@@ -182,8 +165,71 @@ model Lesson {
   updatedAt   DateTime         @updatedAt
   resources   CourseResource[]
   module      CourseModule     @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  progress    LessonProgress[]
 
   @@index([moduleId])
+}
+
+model LessonProgress {
+  id          String    @id @default(cuid())
+  userId      String
+  lessonId    String
+  completed   Boolean   @default(false)
+  completedAt DateTime?
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson      Lesson    @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, lessonId])
+  @@index([userId])
+}
+
+model Quiz {
+  id        String         @id @default(cuid())
+  moduleId  String         @unique
+  title     String
+  passScore Int            @default(70)
+  module    CourseModule   @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  questions QuizQuestion[]
+  attempts  QuizAttempt[]
+}
+
+model QuizQuestion {
+  id            String @id @default(cuid())
+  quizId        String
+  question      String
+  options       String[]
+  correctOption Int
+  order         Int
+  quiz          Quiz   @relation(fields: [quizId], references: [id], onDelete: Cascade)
+
+  @@index([quizId])
+}
+
+model QuizAttempt {
+  id        String   @id @default(cuid())
+  userId    String
+  quizId    String
+  score     Int
+  passed    Boolean
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  quiz      Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([quizId])
+}
+
+model Certificate {
+  id         String   @id @default(cuid())
+  userId     String
+  courseId   String
+  code       String   @unique
+  finalScore Int
+  issuedAt   DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course     Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, courseId])
 }
 
 model PasswordResetToken {
@@ -210,7 +256,23 @@ model Enrollment {
   @@index([courseId])
 }
 
+model Order {
+  id              String      @id @default(cuid())
+  userId          String
+  courseId        String?
+  type            OrderType   @default(COURSE)
+  amount          Float
+  status          OrderStatus @default(CREATED)
+  razorpayOrderId String?     @unique
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  course          Course?     @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  payment         Payment?
 
+  @@index([userId])
+  @@index([courseId])
+}
 
 model Payment {
   id                String        @id @default(cuid())
@@ -322,4 +384,9 @@ enum PaymentStatus {
   SUCCESS
   FAILED
   REFUNDED
+}
+
+enum OrderType {
+  COURSE
+  REGISTRATION
 }
