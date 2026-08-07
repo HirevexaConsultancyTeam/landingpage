@@ -16,6 +16,8 @@ import {
 } from "lucide-react";
 import ModuleForm from "@/components/admin/curriculum/ModuleForm";
 import LessonForm from "@/components/admin/curriculum/LessonForm";
+import QuizEditor from "@/components/admin/curriculum/QuizEditor";
+import ExerciseEditor from "@/components/admin/curriculum/ExerciseEditor";
 
 interface Resource {
   id: string;
@@ -414,6 +416,10 @@ export default function ModuleList({
                       Add Lesson
                     </button>
                   )}
+                </div>
+                {/* Assessment */}
+                <div className="border-t border-gray-100 p-4">
+                  <QuizEditor moduleId={module.id} />
                 </div>
               </div>
             )}
