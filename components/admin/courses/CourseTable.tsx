@@ -1,3 +1,11 @@
+// ============================================================================
+//  DESTINATION:  components/admin/courses/CourseTable.tsx
+//  RENAME THIS FILE TO:  CourseTable.tsx
+//
+//  Adds a "Preview as student" action (PlayCircle icon) that opens the learn
+//  page in a new tab. Works without paying because of the admin bypass in
+//  lib/progress.ts — only the allow-listed admin can actually load it.
+// ============================================================================
 "use client";
 
 import { useMemo, useState } from "react";
@@ -26,6 +34,7 @@ import {
   BookOpen,
   Users,
   Layers,
+  PlayCircle,
 } from "lucide-react";
 
 export interface CourseRow {
@@ -65,6 +74,9 @@ const LEVEL_COLORS: Record<string, string> = {
 };
 
 const PAGE_SIZES = [10, 20, 50];
+
+/** Where the admin preview opens. Same URL a paying student lands on. */
+const learnUrl = (slug: string) => `/dashboard/courses/${slug}/learn`;
 
 export default function CourseTable({
   data,
@@ -209,8 +221,30 @@ export default function CourseTable({
         header: "",
         cell: ({ row }) => {
           const course = row.original;
+          const hasModules = course._count.modules > 0;
           return (
             <div className="flex items-center justify-end gap-1">
+              {/* Preview as student — opens the learn page in a new tab.
+                  Disabled when the course has no modules, since there'd be
+                  nothing to look at. */}
+              {hasModules ? (
+                <a
+                  href={learnUrl(course.slug)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="rounded-lg p-1.5 text-gray-400 transition hover:bg-emerald-50 hover:text-emerald-600"
+                  title="Preview as student"
+                >
+                  <PlayCircle className="h-4 w-4" />
+                </a>
+              ) : (
+                <span
+                  className="cursor-not-allowed rounded-lg p-1.5 text-gray-200"
+                  title="Add a module before previewing"
+                >
+                  <PlayCircle className="h-4 w-4" />
+                </span>
+              )}
               <a
                 href={`/admin/courses/${course.id}/curriculum`}
                 className="rounded-lg p-1.5 text-gray-400 transition hover:bg-orange-50 hover:text-[#FF9900]"
@@ -330,6 +364,7 @@ export default function CourseTable({
             {rows.map((row) => {
               const course = row.original;
               const effective = course.price - (course.price * course.discount) / 100;
+              const hasModules = course._count.modules > 0;
               return (
                 <div
                   key={row.id}
@@ -410,6 +445,19 @@ export default function CourseTable({
                       <p className="text-[10px] text-gray-400">Modules</p>
                     </div>
                   </div>
+
+                  {/* Preview gets a full-width button on mobile — it's the
+                      action you reach for most while building a course. */}
+                  {hasModules && (
+                    <a
+                      href={learnUrl(course.slug)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mt-3 flex items-center justify-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 py-2 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-100"
+                    >
+                      <PlayCircle className="h-4 w-4" /> Preview as student
+                    </a>
+                  )}
 
                   <div className="mt-3 flex items-center justify-end gap-1 border-t border-gray-100 pt-3">
                     <a

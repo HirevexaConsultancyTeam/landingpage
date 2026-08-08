@@ -1,17 +1,23 @@
+// ============================================================================
+//  DESTINATION:  lib/progress.ts
+//  Replaces your existing file. Adds a read-only admin bypass.
+// ============================================================================
 import { prisma } from "@/lib/prisma";
 import { ModuleStatus } from "@prisma/client";
 
 /**
  * If true, a module with a quiz is only COMPLETED when the student has both
- * finished every lesson AND passed the quiz. If false, passing the quiz alone
- * completes it (this is what the reference demo does).
- *
- * Trade-off to be aware of: with `true`, an admin adding a new lesson to an
- * already-completed module will flip that module back to IN_PROGRESS for every
- * student, which can re-lock later modules. That is arguably correct, but it is
- * surprising on a live course. Flip to `false` if support complaints start.
+ * finished every lesson AND passed the quiz.
  */
 export const REQUIRE_LESSONS_BEFORE_MODULE_COMPLETE = true;
+
+/**
+ * Roles that get free access to every course without paying or enrolling.
+ *
+ * COUNSELLOR is included because counsellors need to see what they're advising
+ * students on. Drop it to ["ADMIN"] if that's not wanted.
+ */
+const BYPASS_ROLES = ["ADMIN", "COUNSELLOR"] as const;
 
 export interface ModuleProgressView {
   moduleId: string;
@@ -24,27 +30,70 @@ export interface ModuleProgressView {
   isFinalExam: boolean;
 }
 
+/** True when this user bypasses payment and locking entirely. */
+export async function hasBypass(userId: string): Promise<boolean> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { role: true },
+  });
+  if (!user) return false;
+  return (BYPASS_ROLES as readonly string[]).includes(user.role);
+}
+
 /**
- * Recomputes every module's status for one student on one course, then persists it.
+ * Every module UNLOCKED, computed without touching the database.
  *
- * This is deliberately a full recompute from source data (LessonProgress +
- * QuizAttempt) rather than an incremental mutation. It is idempotent, it is safe
- * to call from anywhere, and it self-heals if a write was ever missed — which
- * matters because module locking is the thing standing between a student and
- * content they may not have finished paying for.
+ * Deliberately does NOT persist anything. An admin previewing a course must not
+ * create ModuleProgress or Enrollment rows — those would show up in enrollment
+ * counts, completion rates and the student list, quietly corrupting the numbers
+ * your client reports on.
+ */
+export async function previewCourseProgress(courseId: string): Promise<ModuleProgressView[]> {
+  const modules = await prisma.courseModule.findMany({
+    where: { courseId },
+    orderBy: { order: "asc" },
+    select: {
+      id: true,
+      order: true,
+      isFinalExam: true,
+      lessons: { select: { id: true } },
+      quiz: { select: { id: true } },
+    },
+  });
+
+  return modules.map((m) => ({
+    moduleId: m.id,
+    order: m.order,
+    status: ModuleStatus.UNLOCKED,
+    bestQuizScore: 0,
+    lessonsTotal: m.lessons.length,
+    lessonsCompleted: 0,
+    hasQuiz: Boolean(m.quiz),
+    isFinalExam: m.isFinalExam,
+  }));
+}
+
+/**
+ * Recomputes every module's status for one student on one course, then persists.
+ *
+ * Full recompute from source data rather than incremental mutation: idempotent,
+ * safe to call anywhere, self-healing if a write was ever missed.
  *
  * Unlock rules:
- *   - Modules are ordered by `order`.
+ *   - Modules ordered by `order`.
  *   - The first non-final module always starts UNLOCKED.
  *   - A non-final module unlocks when the previous non-final module is COMPLETED.
  *   - The final-exam module unlocks only when EVERY non-final module is COMPLETED.
- *   - A module is COMPLETED when its quiz is passed (see the constant above).
- *     A module with no quiz completes when all its lessons are done.
  */
 export async function syncCourseProgress(
   userId: string,
   courseId: string
 ): Promise<ModuleProgressView[]> {
+  // Admins get the unlocked view with no writes.
+  if (await hasBypass(userId)) {
+    return previewCourseProgress(courseId);
+  }
+
   const modules = await prisma.courseModule.findMany({
     where: { courseId },
     orderBy: { order: "asc" },
@@ -149,8 +198,6 @@ export async function syncCourseProgress(
     };
   });
 
-  // Persist. `unlockedAt` / `completedAt` are stamped once and never overwritten,
-  // so they survive a module briefly reverting (e.g. admin adds a lesson).
   const now = new Date();
   await prisma.$transaction(
     views.map((v) =>
@@ -172,7 +219,7 @@ export async function syncCourseProgress(
     )
   );
 
-  // Stamp the timestamps that upsert-update can't express conditionally.
+  // Stamp timestamps that upsert-update can't express conditionally.
   await prisma.$transaction([
     prisma.moduleProgress.updateMany({
       where: {
@@ -192,7 +239,7 @@ export async function syncCourseProgress(
     }),
   ]);
 
-  // Keep the course-level percentage in sync (lesson-based, as before).
+  // Keep the course-level percentage in sync (lesson-based).
   const totalLessons = computed.reduce((a, m) => a + m.lessonsTotal, 0);
   const doneLessons = computed.reduce((a, m) => a + m.lessonsCompleted, 0);
   const percent = totalLessons > 0 ? Math.round((doneLessons / totalLessons) * 100) : 0;
@@ -210,8 +257,25 @@ export async function syncCourseProgress(
   return views;
 }
 
-/** Throws-free enrollment check. */
+/**
+ * Enrolment check that admins pass without an Enrollment row.
+ *
+ * Use this for ACCESS decisions. If you need to know whether a real enrollment
+ * exists — for counts, reporting or certificate issuance — query the table
+ * directly instead, or this will overcount by every admin who opened a course.
+ */
 export async function isEnrolled(userId: string, courseId: string): Promise<boolean> {
+  if (await hasBypass(userId)) return true;
+
+  const e = await prisma.enrollment.findUnique({
+    where: { userId_courseId: { userId, courseId } },
+    select: { id: true },
+  });
+  return Boolean(e);
+}
+
+/** Strict check — ignores the admin bypass. Use for certificates and reporting. */
+export async function hasRealEnrollment(userId: string, courseId: string): Promise<boolean> {
   const e = await prisma.enrollment.findUnique({
     where: { userId_courseId: { userId, courseId } },
     select: { id: true },
@@ -221,7 +285,6 @@ export async function isEnrolled(userId: string, courseId: string): Promise<bool
 
 /**
  * Server-side gate for anything module-scoped (quiz questions, lesson bodies).
- * Recomputes first so the answer reflects reality, not a stale row.
  */
 export async function canAccessModule(
   userId: string,
@@ -233,9 +296,16 @@ export async function canAccessModule(
   });
   if (!mod) return { ok: false, reason: "NOT_FOUND" };
 
-  if (!(await isEnrolled(userId, mod.courseId))) {
-    return { ok: false, reason: "NOT_ENROLLED" };
+  // Admins skip both the enrolment check and the lock chain.
+  if (await hasBypass(userId)) {
+    return { ok: true, courseId: mod.courseId };
   }
+
+  const e = await prisma.enrollment.findUnique({
+    where: { userId_courseId: { userId, courseId: mod.courseId } },
+    select: { id: true },
+  });
+  if (!e) return { ok: false, reason: "NOT_ENROLLED" };
 
   const views = await syncCourseProgress(userId, mod.courseId);
   const view = views.find((v) => v.moduleId === moduleId);
