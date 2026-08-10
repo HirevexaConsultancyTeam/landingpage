@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { ShoppingBag, BookOpen, Loader2, TrendingUp, IndianRupee, Users, ShieldCheck } from "lucide-react";
+import { ShoppingBag, BookOpen, Loader2, TrendingUp, IndianRupee, Users, ShieldCheck, Trash2 } from "lucide-react";
 
 interface Order {
   id: string;
@@ -28,6 +28,7 @@ function orderLabel(order: Order) {
 export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/admin/orders")
@@ -37,6 +38,29 @@ export default function OrdersPage() {
       .finally(() => setLoading(false));
   }, []);
 
+  async function handleDelete(order: Order) {
+    if (order.status === "PAID") return;
+    const confirmed = window.confirm(
+      `Delete this ${order.status.toLowerCase()} order from ${order.user.email}? This can't be undone.`
+    );
+    if (!confirmed) return;
+
+    setDeletingId(order.id);
+    try {
+      const res = await fetch(`/api/admin/orders/${order.id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        alert(data.error ?? "Failed to delete order");
+        return;
+      }
+      setOrders(prev => prev.filter(o => o.id !== order.id));
+    } catch {
+      alert("Failed to delete order");
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
   const totalRevenue = orders.filter(o => o.status === "PAID").reduce((a, o) => a + o.amount, 0);
   const paid = orders.filter(o => o.status === "PAID").length;
 
@@ -44,7 +68,9 @@ export default function OrdersPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Orders</h1>
-        <p className="text-sm text-gray-500 mt-1">Course purchases and registration fee history</p>
+        <p className="text-sm text-gray-500 mt-1">
+          Course purchases and registration fee history · unpaid orders auto-clear after 24h
+        </p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -91,6 +117,7 @@ export default function OrdersPage() {
                     <th className="px-5 py-3">Amount</th>
                     <th className="px-5 py-3">Status</th>
                     <th className="px-5 py-3">Date</th>
+                    <th className="px-5 py-3"></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -114,6 +141,22 @@ export default function OrdersPage() {
                       <td className="px-5 py-4 text-gray-500">
                         {new Date(order.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
                       </td>
+                      <td className="px-5 py-4 text-right">
+                        {order.status !== "PAID" && (
+                          <button
+                            onClick={() => handleDelete(order)}
+                            disabled={deletingId === order.id}
+                            className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition disabled:opacity-50"
+                            aria-label="Delete order"
+                          >
+                            {deletingId === order.id ? (
+                              <Loader2 size={16} className="animate-spin" />
+                            ) : (
+                              <Trash2 size={16} />
+                            )}
+                          </button>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -131,9 +174,25 @@ export default function OrdersPage() {
                       )}
                       {orderLabel(order)}
                     </p>
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border ${STATUS_STYLES[order.status] ?? "bg-gray-50 text-gray-600 border-gray-200"}`}>
-                      {order.status}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border ${STATUS_STYLES[order.status] ?? "bg-gray-50 text-gray-600 border-gray-200"}`}>
+                        {order.status}
+                      </span>
+                      {order.status !== "PAID" && (
+                        <button
+                          onClick={() => handleDelete(order)}
+                          disabled={deletingId === order.id}
+                          className="p-1 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition disabled:opacity-50"
+                          aria-label="Delete order"
+                        >
+                          {deletingId === order.id ? (
+                            <Loader2 size={14} className="animate-spin" />
+                          ) : (
+                            <Trash2 size={14} />
+                          )}
+                        </button>
+                      )}
+                    </div>
                   </div>
                   <p className="text-xs text-gray-500 mb-1">{order.user.email}</p>
                   <div className="flex items-center justify-between">
