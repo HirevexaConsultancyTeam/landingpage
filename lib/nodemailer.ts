@@ -3,6 +3,8 @@
 // ============================================================================
 
 import nodemailer from "nodemailer";
+console.log("EMAIL_USER:", process.env.EMAIL_USER);
+console.log("EMAIL_PASS_LENGTH:", process.env.EMAIL_PASS?.length);
 
 const EMAIL_USER = process.env.EMAIL_USER;
 const EMAIL_PASS = process.env.EMAIL_PASS;

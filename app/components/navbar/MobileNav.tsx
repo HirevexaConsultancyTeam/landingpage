@@ -104,7 +104,7 @@ export default function MobileNav({ session, loading }: Props) {
                 ) : (
                   <>
                     <Link href="/jobs" className="px-5 py-4 hover:bg-[#37475A]" onClick={() => setOpen(false)}>Jobs</Link>
-                    <Link href="/dashboard/applications" className="px-5 py-4 hover:bg-[#37475A]" onClick={() => setOpen(false)}>Applications</Link>
+                   
                     <Link href="/dashboard/resume" className="px-5 py-4 hover:bg-[#37475A]" onClick={() => setOpen(false)}>Resume</Link>
                     <Link href="/dashboard/profile" className="px-5 py-4 hover:bg-[#37475A]" onClick={() => setOpen(false)}>Profile</Link>
                   </>
