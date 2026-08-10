@@ -63,6 +63,7 @@ model Job {
   experience   ExperienceLevel?
   salary       String?
   openings     Int              @default(1)
+  applyUrl     String?  
   skills       String[]
   description  String?
   deadline     DateTime?

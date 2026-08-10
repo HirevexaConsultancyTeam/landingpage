@@ -1,12 +1,26 @@
+// ============================================================================
+//  DESTINATION:  app/jobs/[id]/ApplyButton.tsx   (replaces existing)
+//  Now takes two extra props: loggedIn, registrationPaid
+// ============================================================================
 "use client";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { CheckCircle, Loader2, Send } from "lucide-react";
+import { CheckCircle, Loader2, Send, LogIn, Lock } from "lucide-react";
 import { toast } from "sonner";
 
-type ApplyButtonProps = { jobId: string; hasApplied: boolean };
+type ApplyButtonProps = {
+  jobId: string;
+  hasApplied: boolean;
+  loggedIn: boolean;
+  registrationPaid: boolean;
+};
 
-export default function ApplyButton({ jobId, hasApplied }: ApplyButtonProps) {
+export default function ApplyButton({
+  jobId,
+  hasApplied,
+  loggedIn,
+  registrationPaid,
+}: ApplyButtonProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [applied, setApplied] = useState(hasApplied);
@@ -25,6 +39,11 @@ export default function ApplyButton({ jobId, hasApplied }: ApplyButtonProps) {
       if (res.status === 401) {
         toast.error("Please login to continue.");
         router.push("/login");
+        return;
+      }
+      if (res.status === 402) {
+        toast.error("Complete your registration to apply.");
+        router.push("/payment/registration");
         return;
       }
       if (res.status === 400) {
@@ -52,9 +71,47 @@ export default function ApplyButton({ jobId, hasApplied }: ApplyButtonProps) {
 
   if (applied) {
     return (
-      <div className="w-full flex items-center justify-center gap-2 bg-emerald-50 border border-emerald-200 text-emerald-700 font-semibold py-3 rounded-xl text-sm">
+      <div className="flex w-full items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 py-3 text-sm font-semibold text-emerald-700">
         <CheckCircle size={16} className="text-emerald-500" />
         Application Submitted
+      </div>
+    );
+  }
+
+  // Logged out — send them to login rather than letting them click through to
+  // a 401 they'd have to interpret.
+  if (!loggedIn) {
+    return (
+      <div className="space-y-2">
+        <button
+          onClick={() => router.push("/login")}
+          className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#FF9900] py-3 text-sm font-bold text-gray-900 shadow-sm transition hover:bg-[#e88d00]"
+        >
+          <LogIn size={15} /> Login to Apply
+        </button>
+        <p className="text-center text-xs text-gray-400">
+          New here?{" "}
+          <button onClick={() => router.push("/login")} className="font-semibold text-[#FF9900] hover:underline">
+            Create an account
+          </button>
+        </p>
+      </div>
+    );
+  }
+
+  // Logged in but registration unpaid.
+  if (!registrationPaid) {
+    return (
+      <div className="space-y-2">
+        <button
+          onClick={() => router.push("/payment/registration")}
+          className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#FF9900] py-3 text-sm font-bold text-gray-900 shadow-sm transition hover:bg-[#e88d00]"
+        >
+          <Lock size={15} /> Register to Apply
+        </button>
+        <p className="text-center text-xs text-gray-400">
+          One-time registration unlocks applications and full job details.
+        </p>
       </div>
     );
   }
@@ -63,7 +120,7 @@ export default function ApplyButton({ jobId, hasApplied }: ApplyButtonProps) {
     <button
       onClick={apply}
       disabled={loading}
-      className="w-full inline-flex items-center justify-center gap-2 bg-[#FF9900] hover:bg-[#e88d00] text-gray-900 font-bold py-3 rounded-xl text-sm transition disabled:opacity-60 disabled:cursor-not-allowed shadow-sm hover:scale-[1.01] active:scale-[0.99]"
+      className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#FF9900] py-3 text-sm font-bold text-gray-900 shadow-sm transition hover:bg-[#e88d00] hover:scale-[1.01] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
     >
       {loading ? (
         <><Loader2 size={15} className="animate-spin" /> Applying...</>
