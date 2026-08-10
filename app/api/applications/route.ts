@@ -1,17 +1,13 @@
 // ============================================================================
 //  DESTINATION:  app/api/applications/route.ts   (replaces existing)
-//
-//  Two changes:
-//   - POST now requires a paid registration (was missing — the UI hid the
-//     button but the endpoint accepted direct calls).
-//   - GET added so candidates can see their own applications. It deliberately
-//     does NOT return `notes`.
+//  Adds the confirmation email on a successful application.
 // ============================================================================
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
+import { sendEmailAsync } from "@/lib/sendEmail";
+import { jobApplicationEmail } from "@/lib/emailTemplates";
 
-// GET /api/applications — the signed-in candidate's own applications.
 export async function GET() {
   try {
     const session = await auth();
@@ -37,18 +33,10 @@ export async function GET() {
         interviewDate: true,
         offerSalary: true,
         rejectionReason: true,
-        // `notes` is INTENTIONALLY absent. Recruiters write candid assessments
-        // there — "weak communication", "overpriced", "not a culture fit".
-        // Selecting fields explicitly rather than excluding them means a future
-        // field added to the model doesn't leak here by default.
+        // `notes` is INTENTIONALLY absent — recruiters write candid assessments
+        // there. Selecting explicitly means a field added later can't leak here.
         job: {
-          select: {
-            id: true,
-            company: true,
-            role: true,
-            location: true,
-            jobType: true,
-          },
+          select: { id: true, company: true, role: true, location: true, jobType: true },
         },
       },
     });
@@ -68,11 +56,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Registration gate. The apply button hides itself for unregistered users,
-    // but that's cosmetic — this is what actually enforces it.
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
-      select: { registrationPaid: true, role: true },
+      select: { registrationPaid: true, role: true, email: true },
     });
 
     const isStaff = user?.role === "ADMIN" || user?.role === "COUNSELLOR";
@@ -146,6 +132,16 @@ export async function POST(req: NextRequest) {
     const application = await prisma.application.create({
       data: { candidateId: candidate.id, jobId },
     });
+
+    // Fire-and-forget. The application is already saved — a mail failure must
+    // not turn a successful application into an error the candidate sees.
+    if (user?.email) {
+      sendEmailAsync({
+        to: user.email,
+        subject: `Application received — ${job.role} at ${job.company}`,
+        html: jobApplicationEmail(candidate.firstName, job.company, job.role),
+      });
+    }
 
     return NextResponse.json(application);
   } catch (error) {

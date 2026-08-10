@@ -1,11 +1,13 @@
 // ============================================================================
 //  DESTINATION:  app/api/payments/verify/route.ts   (replaces existing)
-//  Adds an explicit already-PAID guard before processing.
+//  Adds purchase confirmation emails for both course and registration payments.
 // ============================================================================
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { sendEmailAsync } from "@/lib/sendEmail";
+import { coursePurchaseEmail, registrationPaidEmail } from "@/lib/emailTemplates";
 
 export async function POST(req: NextRequest) {
   try {
@@ -34,14 +36,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ message: "Payment verification failed." }, { status: 400 });
     }
 
-    const order = await prisma.order.findUnique({ where: { razorpayOrderId: razorpay_order_id } });
+    const order = await prisma.order.findUnique({
+      where: { razorpayOrderId: razorpay_order_id },
+      include: { course: { select: { title: true, slug: true } } },
+    });
+
     if (!order || order.userId !== userId) {
       return NextResponse.json({ message: "Order not found." }, { status: 404 });
     }
 
-    // Explicit guard. The webhook may have processed this already, and a
-    // double-fired handler must not re-run the transaction. The upserts below
-    // are idempotent anyway, but relying on that is implicit — this states it.
+    // Already handled — most likely the webhook got here first. Return without
+    // re-running the transaction or sending a duplicate email.
     if (order.status === "PAID") {
       return NextResponse.json({ success: true, alreadyProcessed: true });
     }
@@ -77,6 +82,32 @@ export async function POST(req: NextRequest) {
         });
       }
     });
+
+    // Sent after the transaction commits — never inside it. An email failure
+    // rolling back a completed payment would be a far worse bug than a missing
+    // receipt.
+    const buyer = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { email: true, candidate: { select: { firstName: true } } },
+    });
+
+    const name = buyer?.candidate?.firstName ?? buyer?.email?.split("@")[0] ?? "there";
+
+    if (buyer?.email) {
+      if (order.type === "REGISTRATION") {
+        sendEmailAsync({
+          to: buyer.email,
+          subject: "Registration confirmed — HireVexa",
+          html: registrationPaidEmail(name, order.amount),
+        });
+      } else if (order.course) {
+        sendEmailAsync({
+          to: buyer.email,
+          subject: `You're enrolled in ${order.course.title}`,
+          html: coursePurchaseEmail(name, order.course.title, order.amount, order.course.slug),
+        });
+      }
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

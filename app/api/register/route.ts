@@ -1,11 +1,29 @@
+// ============================================================================
+//  DESTINATION:  app/api/register/route.ts   (replaces existing)
+// ============================================================================
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 import bcrypt from "bcryptjs";
-import { sendEmail } from "@/lib/sendEmail";
+import { sendEmailAsync } from "@/lib/sendEmail";
 import { welcomeEmail } from "@/lib/emailTemplates";
+import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
 
 export async function POST(req: NextRequest) {
   try {
+    const ip = getClientIp(req);
+
+    // Without this, someone can script thousands of accounts. Each one is a
+    // real row plus a real outbound email, so it's both a data problem and a
+    // fast way to get your new Titan domain flagged as a spam source.
+    const limit = await checkRateLimit(`register:${ip}`, 5, 60 * 60);
+    if (!limit.allowed) {
+      return NextResponse.json(
+        { error: "Too many sign-ups from this network. Try again later." },
+        { status: 429 }
+      );
+    }
+
     const body = await req.json();
     const {
       firstName, lastName, email, mobile, city, password,
@@ -14,18 +32,19 @@ export async function POST(req: NextRequest) {
     } = body;
 
     if (!email || !password || !firstName || !lastName) {
+      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    }
+
+    if (typeof password !== "string" || password.length < 8) {
       return NextResponse.json(
-        { error: "Missing required fields" },
+        { error: "Password must be at least 8 characters." },
         { status: 400 }
       );
     }
 
-    // Normalize email — always lowercase + trimmed
     const normalizedEmail = email.toLowerCase().trim();
 
-    const existing = await prisma.user.findUnique({
-      where: { email: normalizedEmail },
-    });
+    const existing = await prisma.user.findUnique({ where: { email: normalizedEmail } });
 
     if (existing) {
       return NextResponse.json(
@@ -66,18 +85,15 @@ export async function POST(req: NextRequest) {
       include: { candidate: true },
     });
 
-    // Send welcome email
-    try {
-      await sendEmail({
-        to: normalizedEmail,
-        subject: "Welcome to HireVexa 🚀",
-        html: welcomeEmail(firstName),
-      });
-      console.log("Welcome email sent.");
-    } catch (emailError) {
-      console.error("Failed to send welcome email:", emailError);
-      // Registration still succeeds even if email fails
-    }
+    // Not awaited. The old version made the user wait on SMTP — one to three
+    // seconds of spinner after they'd already clicked Submit, for an email they
+    // haven't opened yet. sendEmail logs its own failures, so the try/catch that
+    // used to wrap this is no longer needed either.
+    sendEmailAsync({
+      to: normalizedEmail,
+      subject: "Welcome to HireVexa",
+      html: welcomeEmail(firstName),
+    });
 
     return NextResponse.json({
       success: true,
@@ -85,6 +101,21 @@ export async function POST(req: NextRequest) {
       candidateId: user.candidate?.id,
     });
   } catch (error) {
+    // A duplicate mobile number hits the unique constraint and would otherwise
+    // surface as an unexplained 500 with no hint about which field is wrong.
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      const field = (error.meta?.target as string[] | undefined)?.[0];
+      return NextResponse.json(
+        {
+          error:
+            field === "mobile"
+              ? "An account with this mobile number already exists."
+              : "An account with these details already exists.",
+        },
+        { status: 409 }
+      );
+    }
+
     console.error("Registration error:", error);
     return NextResponse.json(
       { error: "Something went wrong. Please try again." },

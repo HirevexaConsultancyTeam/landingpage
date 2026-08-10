@@ -1,131 +1,241 @@
-const BASE_URL = process.env.NEXTAUTH_URL || "https://hirevexaconsultancy.in";
+// ============================================================================
+//  DESTINATION:  lib/emailTemplates.ts   (replaces existing)
+// ============================================================================
 
-export function welcomeEmail(name: string) {
-  return `
-<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
-<body style="margin:0;padding:0;background:#f5f5f5;font-family:Arial,sans-serif;">
-  <div style="max-width:600px;margin:0 auto;padding:40px 20px;">
-    
-    <!-- Header -->
-    <div style="background:linear-gradient(135deg,#1a2332,#232F3E);border-radius:16px 16px 0 0;padding:40px 40px 32px;text-align:center;">
-      <div style="background:#FF9900;display:inline-block;padding:12px 16px;border-radius:12px;margin-bottom:20px;">
-        <span style="color:#131921;font-weight:900;font-size:20px;letter-spacing:1px;">HireVexa</span>
-      </div>
-      <h1 style="color:#ffffff;margin:0;font-size:26px;font-weight:700;">Welcome aboard, ${name}! 🚀</h1>
-      <p style="color:#aaaaaa;margin:10px 0 0;font-size:14px;">Your career journey starts now</p>
-    </div>
+const BRAND = "#FF9900";
+const DARK = "#232F3E";
+const SITE = process.env.NEXTAUTH_URL ?? "https://www.hirevexaconsultancy.in";
 
-    <!-- Body -->
-    <div style="background:#ffffff;padding:40px;border-left:1px solid #e5e7eb;border-right:1px solid #e5e7eb;">
-      <p style="color:#374151;font-size:15px;line-height:1.6;margin:0 0 16px;">
-        Hi <strong>${name}</strong>,
-      </p>
-      <p style="color:#374151;font-size:15px;line-height:1.6;margin:0 0 24px;">
-        Your HireVexa account has been created successfully. We're excited to help you land your first job!
-      </p>
+/**
+ * Shared shell for every email.
+ *
+ * Table-based layout with inline styles, deliberately. Outlook renders with
+ * Word's HTML engine — no flexbox, no grid, and external stylesheets are
+ * stripped by most clients. This looks like 2005 markup because email clients
+ * are stuck there.
+ */
+function layout(opts: {
+  preheader: string;
+  heading: string;
+  body: string;
+  ctaLabel?: string;
+  ctaUrl?: string;
+  footerNote?: string;
+}): string {
+  const { preheader, heading, body, ctaLabel, ctaUrl, footerNote } = opts;
 
-      <!-- Steps -->
-      <div style="background:#f9fafb;border-radius:12px;padding:24px;margin-bottom:28px;">
-        <p style="color:#111827;font-weight:700;margin:0 0 16px;font-size:14px;text-transform:uppercase;letter-spacing:0.5px;">Here's how to get started:</p>
-        ${[
-          ["Complete your profile", "Add your education, skills, and job preferences"],
-          ["Upload your resume", "Our counsellor will review and optimise it for you"],
-          ["Browse open jobs", "Apply to roles matched to your profile"],
-          ["Book a counselling session", "Get personalised guidance from our experts"],
-        ].map(([title, desc], i) => `
-        <div style="display:flex;align-items:flex-start;margin-bottom:14px;">
-          <div style="background:#FF9900;color:#131921;font-weight:700;font-size:12px;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-right:12px;margin-top:1px;">${i + 1}</div>
-          <div>
-            <p style="margin:0;color:#111827;font-weight:600;font-size:14px;">${title}</p>
-            <p style="margin:2px 0 0;color:#6b7280;font-size:13px;">${desc}</p>
-          </div>
-        </div>`).join("")}
-      </div>
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${escapeHtml(heading)}</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
 
-      <!-- CTA -->
-      <div style="text-align:center;margin-bottom:28px;">
-        <a href="${BASE_URL}/dashboard" style="display:inline-block;background:#FF9900;color:#131921;font-weight:700;font-size:15px;padding:14px 32px;border-radius:10px;text-decoration:none;">
-          Go to My Dashboard →
-        </a>
-      </div>
-
-      <p style="color:#6b7280;font-size:13px;line-height:1.6;margin:0;">
-        Our team will reach out within 24 hours to schedule your first counselling session. If you have any questions, reply to this email or contact us at <a href="mailto:hirevexaconsultancy01@gmail.com" style="color:#FF9900;">hirevexaconsultancy01@gmail.com</a>
-      </p>
-    </div>
-
-    <!-- Footer -->
-    <div style="background:#f9fafb;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 16px 16px;padding:24px 40px;text-align:center;">
-      <p style="color:#9ca3af;font-size:12px;margin:0;">
-        © 2025 HireVexa Consultancy · Pan India<br/>
-        <a href="${BASE_URL}" style="color:#FF9900;text-decoration:none;">hirevexa.com</a> · 
-        <a href="mailto:hirevexaconsultancy01@gmail.com" style="color:#FF9900;text-decoration:none;">Support</a>
-      </p>
-    </div>
-
+  <!-- Preheader: the grey preview line next to the subject in most inboxes.
+       Hidden in the body itself. Without it, clients pull the first visible
+       text, which is usually the logo alt text. -->
+  <div style="display:none;max-height:0;overflow:hidden;opacity:0;">
+    ${escapeHtml(preheader)}
   </div>
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f4f5;padding:24px 12px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background-color:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e5e7eb;">
+
+          <tr>
+            <td style="background-color:${DARK};padding:24px 28px;">
+              <div style="font-size:20px;font-weight:700;color:#ffffff;letter-spacing:-0.3px;">HireVexa</div>
+              <div style="font-size:10px;font-weight:600;color:${BRAND};letter-spacing:2px;text-transform:uppercase;margin-top:2px;">Consultancy</div>
+            </td>
+          </tr>
+
+          <tr>
+            <td style="padding:32px 28px 8px 28px;">
+              <h1 style="margin:0 0 16px 0;font-size:20px;line-height:1.35;font-weight:700;color:#111827;">${escapeHtml(heading)}</h1>
+              <div style="font-size:14px;line-height:1.7;color:#4b5563;">${body}</div>
+            </td>
+          </tr>
+
+          ${ctaLabel && ctaUrl ? `
+          <tr>
+            <td style="padding:8px 28px 32px 28px;">
+              <table role="presentation" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="background-color:${BRAND};border-radius:10px;">
+                    <a href="${ctaUrl}" style="display:inline-block;padding:13px 28px;font-size:14px;font-weight:700;color:#111827;text-decoration:none;">${escapeHtml(ctaLabel)}</a>
+                  </td>
+                </tr>
+              </table>
+              <p style="margin:14px 0 0 0;font-size:11px;color:#9ca3af;line-height:1.6;">
+                If the button doesn't work, copy this link into your browser:<br>
+                <span style="color:#6b7280;word-break:break-all;">${ctaUrl}</span>
+              </p>
+            </td>
+          </tr>` : `<tr><td style="padding:0 28px 32px 28px;"></td></tr>`}
+
+          <tr>
+            <td style="background-color:#fafafa;border-top:1px solid #e5e7eb;padding:20px 28px;">
+              ${footerNote ? `<p style="margin:0 0 10px 0;font-size:12px;color:#6b7280;line-height:1.6;">${footerNote}</p>` : ""}
+              <p style="margin:0;font-size:11px;color:#9ca3af;line-height:1.7;">
+                HireVexa Consultancy &middot; Serving Pan India<br>
+                Questions? Reply to this email and we'll get back to you.<br>
+                <a href="${SITE}" style="color:#9ca3af;">${SITE.replace(/^https?:\/\//, "")}</a>
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
 </body>
 </html>`;
 }
 
-export function resetPasswordEmail(name: string, resetUrl: string) {
-  return `
-<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
-<body style="margin:0;padding:0;background:#f5f5f5;font-family:Arial,sans-serif;">
-  <div style="max-width:600px;margin:0 auto;padding:40px 20px;">
+/** Escapes user-supplied values. A candidate named `<script>` shouldn't break the email. */
+function escapeHtml(s: string): string {
+  return String(s)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
 
-    <!-- Header -->
-    <div style="background:linear-gradient(135deg,#1a2332,#232F3E);border-radius:16px 16px 0 0;padding:40px 40px 32px;text-align:center;">
-      <div style="background:#FF9900;display:inline-block;padding:12px 16px;border-radius:12px;margin-bottom:20px;">
-        <span style="color:#131921;font-weight:900;font-size:20px;letter-spacing:1px;">HireVexa</span>
-      </div>
-      <h1 style="color:#ffffff;margin:0;font-size:26px;font-weight:700;">Reset Your Password 🔐</h1>
-      <p style="color:#aaaaaa;margin:10px 0 0;font-size:14px;">We received a request to reset your password</p>
-    </div>
+/* ───────────────────────── 1. Welcome ───────────────────────── */
 
-    <!-- Body -->
-    <div style="background:#ffffff;padding:40px;border-left:1px solid #e5e7eb;border-right:1px solid #e5e7eb;">
-      <p style="color:#374151;font-size:15px;line-height:1.6;margin:0 0 16px;">
-        Hi <strong>${name}</strong>,
-      </p>
-      <p style="color:#374151;font-size:15px;line-height:1.6;margin:0 0 28px;">
-        Someone requested a password reset for your HireVexa account. Click the button below to set a new password. This link expires in <strong>1 hour</strong>.
-      </p>
+export function welcomeEmail(name: string): string {
+  return layout({
+    preheader: "Your HireVexa account is ready — here's what to do next.",
+    heading: `Welcome to HireVexa, ${escapeHtml(name)}`,
+    body: `
+      <p style="margin:0 0 14px 0;">Your account is set up. You can sign in and start straight away.</p>
+      <p style="margin:0 0 10px 0;font-weight:600;color:#111827;">To get the most out of it:</p>
+      <ol style="margin:0 0 14px 0;padding-left:20px;">
+        <li style="margin-bottom:7px;">Upload your resume — recruiters see it first.</li>
+        <li style="margin-bottom:7px;">Complete your profile. Fuller profiles get shortlisted more often.</li>
+        <li style="margin-bottom:7px;">Complete registration to unlock job applications and full listing details.</li>
+      </ol>`,
+    ctaLabel: "Go to your dashboard",
+    ctaUrl: `${SITE}/dashboard`,
+    footerNote: "You're receiving this because an account was created with this email address.",
+  });
+}
 
-      <!-- CTA -->
-      <div style="text-align:center;margin-bottom:28px;">
-        <a href="${resetUrl}" style="display:inline-block;background:#FF9900;color:#131921;font-weight:700;font-size:15px;padding:14px 32px;border-radius:10px;text-decoration:none;">
-          Reset My Password →
-        </a>
-      </div>
+/* ─────────────────── 2. Registration fee paid ─────────────────── */
 
-      <!-- Security note -->
-      <div style="background:#fef3c7;border:1px solid #fbbf24;border-radius:10px;padding:16px;margin-bottom:24px;">
-        <p style="color:#92400e;font-size:13px;margin:0;line-height:1.6;">
-          ⚠️ If you didn't request this, you can safely ignore this email. Your password will not change unless you click the link above.
-        </p>
-      </div>
+export function registrationPaidEmail(name: string, amount: number): string {
+  return layout({
+    preheader: "Registration confirmed — you can now apply to jobs.",
+    heading: "Registration confirmed",
+    body: `
+      <p style="margin:0 0 14px 0;">Hi ${escapeHtml(name)}, we've received your registration payment of <strong>₹${amount}</strong>.</p>
+      <p style="margin:0 0 14px 0;">Your account is now fully active. You can see salary details and full job descriptions, apply to any open role, and track every application from your dashboard.</p>
+      <p style="margin:0;">A counsellor will be in touch shortly to talk through your goals.</p>`,
+    ctaLabel: "Browse open jobs",
+    ctaUrl: `${SITE}/jobs`,
+    footerNote: "Keep this email as your payment record.",
+  });
+}
 
-      <p style="color:#6b7280;font-size:13px;line-height:1.6;margin:0;">
-        If the button doesn't work, copy and paste this link into your browser:<br/>
-        <a href="${resetUrl}" style="color:#FF9900;word-break:break-all;">${resetUrl}</a>
-      </p>
-    </div>
+/* ───────────────────── 3. Course purchase ───────────────────── */
 
-    <!-- Footer -->
-    <div style="background:#f9fafb;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 16px 16px;padding:24px 40px;text-align:center;">
-      <p style="color:#9ca3af;font-size:12px;margin:0;">
-        © 2025 HireVexa Consultancy · Pan India<br/>
-        <a href="${BASE_URL}" style="color:#FF9900;text-decoration:none;">hirevexa.com</a> · 
-        <a href="mailto:hirevexaconsultancy01@gmail.com" style="color:#FF9900;text-decoration:none;">Support</a>
-      </p>
-    </div>
+export function coursePurchaseEmail(
+  name: string,
+  courseTitle: string,
+  amount: number,
+  courseSlug: string
+): string {
+  return layout({
+    preheader: `You're enrolled in ${courseTitle}.`,
+    heading: "You're enrolled",
+    body: `
+      <p style="margin:0 0 14px 0;">Hi ${escapeHtml(name)}, your payment of <strong>₹${amount}</strong> has gone through and you now have full access to:</p>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px 0;">
+        <tr>
+          <td style="background-color:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:16px;">
+            <div style="font-size:15px;font-weight:700;color:#111827;">${escapeHtml(courseTitle)}</div>
+            <div style="font-size:12px;color:#9a3412;margin-top:4px;">Lifetime access</div>
+          </td>
+        </tr>
+      </table>
+      <p style="margin:0;">Modules unlock as you go — finish the lessons in one and clear its assessment to open the next.</p>`,
+    ctaLabel: "Start learning",
+    ctaUrl: `${SITE}/dashboard/courses/${courseSlug}/learn`,
+    footerNote: "Keep this email as your purchase record.",
+  });
+}
 
-  </div>
-</body>
-</html>`;
+/* ─────────────────── 4. Job application sent ─────────────────── */
+
+export function jobApplicationEmail(
+  name: string,
+  company: string,
+  role: string
+): string {
+  return layout({
+    preheader: `Your application to ${company} has been received.`,
+    heading: "Application received",
+    body: `
+      <p style="margin:0 0 14px 0;">Hi ${escapeHtml(name)}, we've received your application for:</p>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px 0;">
+        <tr>
+          <td style="background-color:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:16px;">
+            <div style="font-size:15px;font-weight:700;color:#111827;">${escapeHtml(role)}</div>
+            <div style="font-size:13px;color:#6b7280;margin-top:3px;">${escapeHtml(company)}</div>
+          </td>
+        </tr>
+      </table>
+      <p style="margin:0 0 14px 0;">Our team reviews applications before they go to the company. You'll get an update as the status changes, and you can check it any time from your dashboard.</p>
+      <p style="margin:0;color:#6b7280;font-size:13px;">In the meantime, keep applying — candidates who apply to several roles hear back sooner.</p>`,
+    ctaLabel: "Track your application",
+    ctaUrl: `${SITE}/dashboard`,
+  });
+}
+
+/* ───────────────────── 5. Password reset ───────────────────── */
+
+export function resetPasswordEmail(name: string, resetUrl: string): string {
+  return layout({
+    preheader: "Reset your HireVexa password — this link expires in 1 hour.",
+    heading: "Reset your password",
+    body: `
+      <p style="margin:0 0 14px 0;">Hi ${escapeHtml(name)}, we received a request to reset the password on your HireVexa account.</p>
+      <p style="margin:0 0 14px 0;">Click below to choose a new one. <strong>This link expires in 1 hour.</strong></p>`,
+    ctaLabel: "Reset password",
+    ctaUrl: resetUrl,
+    footerNote:
+      "If you didn't request this, you can ignore this email — your password won't change. If you keep getting these, reply and let us know.",
+  });
+}
+
+/* ─────────────── 6. Application rejected (optional) ─────────────── */
+
+export function applicationRejectedEmail(
+  name: string,
+  company: string,
+  role: string,
+  reason: string | null
+): string {
+  return layout({
+    preheader: `Update on your application to ${company}.`,
+    heading: "Update on your application",
+    body: `
+      <p style="margin:0 0 14px 0;">Hi ${escapeHtml(name)}, your application for <strong>${escapeHtml(role)}</strong> at ${escapeHtml(company)} won't be moving forward this time.</p>
+      ${reason ? `
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px 0;">
+        <tr>
+          <td style="background-color:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:16px;">
+            <div style="font-size:11px;font-weight:700;color:#b91c1c;text-transform:uppercase;letter-spacing:0.5px;">Feedback</div>
+            <div style="font-size:14px;color:#7f1d1d;margin-top:6px;line-height:1.6;">${escapeHtml(reason)}</div>
+          </td>
+        </tr>
+      </table>` : ""}
+      <p style="margin:0 0 14px 0;">This happens to nearly everyone, and it says less than it feels like it does. There are other roles open right now that may fit you better.</p>`,
+    ctaLabel: "See other openings",
+    ctaUrl: `${SITE}/jobs`,
+  });
 }
