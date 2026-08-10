@@ -130,7 +130,7 @@ export default function EditJobPage() {
 
           <div>
             <label className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold text-gray-500">
-              <ExternalLink size={12} /> Apply URL
+              <ExternalLink size={12} /> URL
             </label>
             <input
               type="url"
@@ -139,9 +139,7 @@ export default function EditJobPage() {
               value={form.applyUrl}
               onChange={e => set("applyUrl", e.target.value)}
             />
-            <p className="mt-1 text-[11px] text-gray-400">
-              Optional. Shown to registered candidates alongside the apply button.
-            </p>
+            
           </div>
 
           <div>
