@@ -68,6 +68,68 @@ function Block({
   );
 }
 
+function LegacyContent({ text }: { text: string }) {
+  const blocks = text.split(/\n\s*\n/);
+
+  return (
+    <div className="space-y-4">
+      {blocks.map((block, bi) => {
+        const lines = block.split("\n").filter(Boolean);
+        const isBulletBlock = lines.every(l => /^[-*]\s/.test(l.trim()));
+
+        if (isBulletBlock) {
+          return (
+            <ul key={bi} className="space-y-2">
+              {lines.map((l, li) => (
+                <li key={li} className="flex gap-3 text-gray-300 text-[15px] leading-relaxed">
+                  <span className="text-[#FF9900] mt-1.5 h-1 w-1 rounded-full bg-current shrink-0" />
+                  <span>{renderInline(l.replace(/^[-*]\s/, ""))}</span>
+                </li>
+              ))}
+            </ul>
+          );
+        }
+
+        if (lines.length === 1 && lines[0].length < 60 && !/[.,:]$/.test(lines[0].trim())) {
+          return (
+            <h3 key={bi} className="text-white font-semibold text-[15px] pt-1">
+              {lines[0]}
+            </h3>
+          );
+        }
+
+        return (
+          <p key={bi} className="text-gray-300 text-[15px] leading-[1.75]">
+            {lines.map((l, li) => (
+              <span key={li}>
+                {renderInline(l)}
+                {li < lines.length - 1 && <br />}
+              </span>
+            ))}
+          </p>
+        );
+      })}
+    </div>
+  );
+}
+
+function renderInline(line: string): React.ReactNode {
+  const parts = line.split(/(`[^`]+`|\*\*[^*]+\*\*)/g);
+  return parts.map((part, i) => {
+    if (part.startsWith("`") && part.endsWith("`")) {
+      return (
+        <code key={i} className="bg-black/40 border border-white/10 rounded px-1.5 py-0.5 text-[13px] text-[#FF9900] font-mono">
+          {part.slice(1, -1)}
+        </code>
+      );
+    }
+    if (part.startsWith("**") && part.endsWith("**")) {
+      return <strong key={i} className="text-white font-semibold">{part.slice(2, -2)}</strong>;
+    }
+    return <span key={i}>{part}</span>;
+  });
+}
+
 const Bullets = ({ items }: { items: string[] }) => (
   <ul className="space-y-2.5">
     {items.map((t, i) => (
@@ -480,7 +542,7 @@ export default function LearnPage() {
               {/* Legacy fallback for lessons authored before the structured fields */}
               {!active.theory && active.content && (
                 <Block icon={FileText} label="Lesson content">
-                  <Prose text={active.content} />
+                 <LegacyContent text={active.content} />
                 </Block>
               )}
 
