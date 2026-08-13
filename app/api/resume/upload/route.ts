@@ -50,9 +50,10 @@ export async function POST(req: NextRequest) {
         cloudinary.uploader
           .upload_stream(
             {
-              resource_type: "raw",
-              folder: "hirevexa/resumes",
-              public_id: `${session.user.id}-${Date.now()}`,
+              resource_type: "auto",
+folder: "hirevexa/resumes",
+public_id: `${session.user.id}-${Date.now()}`,
+format: "pdf",
             },
             (error, result) => {
               if (error) reject(error);

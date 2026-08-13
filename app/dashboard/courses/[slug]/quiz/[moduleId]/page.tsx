@@ -5,9 +5,23 @@ import axios from "axios";
 import { toast } from "sonner";
 import { Award, CheckCircle, XCircle, Loader2 } from "lucide-react";
 
-interface Question { id: string; question: string; options: string[]; order: number; }
-interface Quiz { id: string; title: string; passScore: number; questions: Question[]; }
-interface Result { score: number; passed: boolean; correct: number; total: number; }
+interface Question { id: string; question: string; options: string[]; order: number; type: string; }
+interface Quiz {
+  attemptId: string;
+  id: string;
+  title: string;
+  passScore: number;
+  totalQuestions: number;
+  questions: Question[];
+}
+interface Result {
+  score: number;
+  passed: boolean;
+  pointsEarned: number;
+  pointsPossible: number;
+  passScore: number;
+  results: Record<string, boolean>;
+}
 
 export default function QuizPage() {
   const { slug, moduleId } = useParams();
@@ -18,11 +32,19 @@ export default function QuizPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
+  function loadQuiz() {
+    setLoading(true);
+    setResult(null);
+    setAnswers({});
     axios.get(`/api/modules/${moduleId}/quiz`)
       .then(r => setQuiz(r.data))
       .catch(() => toast.error("No quiz found for this module."))
       .finally(() => setLoading(false));
+  }
+
+  useEffect(() => {
+    loadQuiz();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [moduleId]);
 
   async function submit() {
@@ -33,7 +55,10 @@ export default function QuizPage() {
     }
     setSubmitting(true);
     try {
-      const res = await axios.post(`/api/quizzes/${quiz.id}/submit`, { answers });
+      const res = await axios.post(`/api/quizzes/${quiz.id}/submit`, {
+        attemptId: quiz.attemptId,
+        answers,
+      });
       setResult(res.data);
     } catch {
       toast.error("Failed to submit quiz.");
@@ -46,6 +71,8 @@ export default function QuizPage() {
   if (!quiz) return <div className="min-h-screen bg-gray-900 flex items-center justify-center text-gray-400">No quiz for this module.</div>;
 
   if (result) {
+    const correct = Object.values(result.results).filter(Boolean).length;
+    const total = Object.keys(result.results).length;
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
         <div className="bg-[#1a2332] border border-white/10 rounded-2xl p-8 max-w-md w-full text-center">
@@ -53,9 +80,9 @@ export default function QuizPage() {
             {result.passed ? <CheckCircle size={28} className="text-emerald-400" /> : <XCircle size={28} className="text-red-400" />}
           </div>
           <h1 className="text-white text-xl font-bold mb-1">{result.passed ? "Passed!" : "Not Quite"}</h1>
-          <p className="text-gray-400 text-sm mb-4">{result.correct} / {result.total} correct — {result.score}%</p>
+          <p className="text-gray-400 text-sm mb-4">{correct} / {total} correct — {result.score}%</p>
           {!result.passed && (
-            <button onClick={() => { setResult(null); setAnswers({}); }}
+            <button onClick={loadQuiz}
               className="bg-[#FF9900] text-gray-900 font-bold px-5 py-2.5 rounded-xl text-sm mr-2">Retry</button>
           )}
           <button onClick={() => router.push(`/dashboard/courses/${slug}/learn`)}

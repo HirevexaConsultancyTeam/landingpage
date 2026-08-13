@@ -184,10 +184,18 @@ export default function ApplicationDetailPage() {
               <h2 className="font-bold text-gray-900">Resume</h2>
             </div>
             {application.candidate.resumeUrl ? (
-              <a href={application.candidate.resumeUrl} target="_blank"
-                className="inline-flex items-center gap-2 bg-[#FF9900] hover:bg-[#e88d00] text-gray-900 font-bold text-sm px-4 py-2.5 rounded-xl transition">
-                <FileText size={14} /> View Resume
-              </a>
+              <div className="flex gap-2">
+  
+
+  <a
+  href={`/api/resume/download?url=${encodeURIComponent(
+    application.candidate.resumeUrl ?? ""
+  )}&filename=${application.candidate.firstName}_${application.candidate.lastName}_Resume.pdf`}
+  className="inline-flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-sm px-4 py-2.5 rounded-xl transition"
+>
+  ↓ Download
+</a>
+</div>
             ) : (
               <p className="text-sm text-gray-400">No resume uploaded yet.</p>
             )}
