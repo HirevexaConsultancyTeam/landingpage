@@ -139,7 +139,10 @@ export default function OrdersPage() {
                         </span>
                       </td>
                       <td className="px-5 py-4 text-gray-500">
-                        {new Date(order.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                       <div>
+  <p>{new Date(order.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</p>
+  <p className="text-xs text-gray-400">{new Date(order.createdAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true })}</p>
+</div>
                       </td>
                       <td className="px-5 py-4 text-right">
                         {order.status !== "PAID" && (
@@ -197,7 +200,11 @@ export default function OrdersPage() {
                   <p className="text-xs text-gray-500 mb-1">{order.user.email}</p>
                   <div className="flex items-center justify-between">
                     <p className="font-bold text-gray-900">₹{order.amount.toLocaleString()}</p>
-                    <p className="text-xs text-gray-400">{new Date(order.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</p>
+                    <p className="text-xs text-gray-400">
+  {new Date(order.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+  {" · "}
+  {new Date(order.createdAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true })}
+</p>
                   </div>
                 </div>
               ))}
