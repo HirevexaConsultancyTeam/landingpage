@@ -136,10 +136,27 @@ export default function ApplicationsPage() {
                         </span>
                       </td>
                       <td className="px-5 py-4">
-                        {a.candidate.resumeUrl
-                          ? <a href={a.candidate.resumeUrl} target="_blank" className="text-xs font-semibold text-[#FF9900] hover:underline">View</a>
-                          : <span className="text-xs text-gray-300">—</span>}
-                      </td>
+  {a.candidate.resumeUrl ? (
+    <div className="flex items-center gap-2">
+      
+
+      
+
+      <a
+        href={`/api/resume/download?url=${encodeURIComponent(
+          a.candidate.resumeUrl
+        )}&filename=${encodeURIComponent(
+          `${a.candidate.firstName}_${a.candidate.lastName}_Resume.pdf`
+        )}`}
+        className="text-xs font-semibold text-gray-500 hover:text-gray-800 hover:underline"
+      >
+        ↓
+      </a>
+    </div>
+  ) : (
+    <span className="text-xs text-gray-300">—</span>
+  )}
+</td>
                       <td className="px-5 py-4 text-right">
                         <Link href={`/admin/applications/${a.id}`}
                           className="inline-flex items-center gap-1 text-xs font-semibold text-gray-600 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-lg transition">
