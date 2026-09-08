@@ -81,16 +81,7 @@ export default function Footer() {
                     Email Support
                   </a>
                 </li>
-                <li>
-                  <a
-                    href="https://www.whatsapp.com/channel/0029VbAriUBAYlUBEhYmSX3X"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="hover:text-white hover:underline"
-                  >
-                    WhatsApp Channel
-                  </a>
-                </li>
+                
               </ul>
             </div>
 
@@ -119,7 +110,7 @@ export default function Footer() {
                 { label: "LinkedIn", href: "https://linkedin.com/company/hirevexa", icon: "in", wa: false },
                 { label: "Instagram", href: "https://instagram.com/hirevexa", icon: "ig", wa: false },
                 { label: "YouTube", href: "https://youtube.com/@hirevexa", icon: "yt", wa: false },
-                { label: "WhatsApp", href: "https://www.whatsapp.com/channel/0029VbAriUBAYlUBEhYmSX3X", icon: "wa", wa: true },
+                
               ].map((s) => (
                 <a
                   key={s.label}

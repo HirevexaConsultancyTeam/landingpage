@@ -18,7 +18,7 @@ const sections = [
   },
   {
     title: "4. Our Services",
-    content: `HireVexa provides career placement assistance, resume building, interview preparation, and job matching services. Our placement program includes applying to a minimum of 3 (three) hiring partner companies on your behalf. While we strive to secure placement for every candidate, we do not guarantee employment or placement. Final hiring decisions are made solely by the respective companies and are beyond our control.`
+    content: `HireVexa provides career placement assistance, resume building, interview preparation, and job matching services.While we strive to secure placement for every candidate, we do not guarantee employment or placement. Final hiring decisions are made solely by the respective companies and are beyond our control.`
   },
   {
     title: "5. User Conduct",
@@ -37,7 +37,7 @@ Certain skill courses offered through the platform may be subject to separate fe
   },
   {
     title: "7. Refund Policy",
-    content: `All fees paid to HireVexa Consultancy are strictly non-refundable under normal circumstances. Refunds are only considered in exceptional cases where HireVexa has failed to deliver the agreed minimum services (applying to at least 3 companies on your behalf). Non-placement, rejection by companies, or dissatisfaction with offers received does not constitute grounds for a refund. All refund requests are subject to a formal investigation process. Please refer to our full Refund Policy at hirevexaconsultancy.com/refund-policy for complete details.`
+    content: `All fees paid to HireVexa Consultancy are strictly non-refundable under normal circumstances. Non-placement, rejection by companies, or dissatisfaction with offers received does not constitute grounds for a refund. All refund requests are subject to a formal investigation process. Please refer to our full Refund Policy at hirevexaconsultancy.com/refund-policy for complete details.`
   },
   {
     title: "8. Intellectual Property",

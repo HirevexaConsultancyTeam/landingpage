@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Menu, X, User } from "lucide-react";
 import { signOut } from "next-auth/react";
 
-const WA_LINK = "https://www.whatsapp.com/channel/0029VbAriUBAYlUBEhYmSX3X";
+
 
 type Props = { session: any; loading: boolean };
 
@@ -42,21 +42,7 @@ export default function MobileNav({ session, loading }: Props) {
             </div>
           </Link>
 
-          <div className="flex items-center gap-2">
-            {/* WhatsApp button in header */}
-            <a
-              href={WA_LINK}
-              target="_blank"
-              rel="noopener noreferrer"
-              title="Join our WhatsApp Channel"
-              className="wa-bounce w-9 h-9 rounded-full bg-[#25D366] flex items-center justify-center flex-shrink-0"
-            >
-              <WhatsAppIcon />
-            </a>
-            <button onClick={() => setOpen(!open)} className="p-1">
-              {open ? <X size={26} /> : <Menu size={26} />}
-            </button>
-          </div>
+        
         </div>
       </header>
 
@@ -122,21 +108,8 @@ export default function MobileNav({ session, loading }: Props) {
               </>
             )}
 
-            {/* WhatsApp in drawer */}
-            <a
-              href={WA_LINK}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-3 px-5 py-4 border-t border-[#37475A] hover:bg-[#37475A] transition"
-            >
-              <div className="w-8 h-8 rounded-full bg-[#25D366] flex items-center justify-center flex-shrink-0">
-                <WhatsAppIcon />
-              </div>
-              <div>
-                <p className="font-semibold text-sm">Join WhatsApp Channel</p>
-                <p className="text-xs text-gray-400">Get updates & job alerts</p>
-              </div>
-            </a>
+            
+           
           </div>
         </div>
       )}
