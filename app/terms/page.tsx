@@ -18,7 +18,7 @@ const sections = [
   },
   {
     title: "4. Our Services",
-    content: `HireVexa provides career placement assistance, resume building, interview preparation, and job matching services. Our placement program includes applying to a minimum of 3 (three) hiring partner companies on your behalf.
+    content: `HireVexa provides career placement assistance, resume building, interview preparation, and job matching services.
 
 HireVexa does not guarantee employment, an interview, or a job offer of any kind. Our role is limited to making genuine, good-faith efforts on your behalf — preparing you, presenting you to hiring partners, and supporting you through the process. Final hiring decisions are made solely by the respective companies, based on their own criteria, and are entirely beyond our control.`,
     highlight: {
