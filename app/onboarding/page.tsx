@@ -40,6 +40,7 @@ export default function OnboardingPage() {
       if (!form.firstName || !form.lastName) return setError("First and last name are required."), false;
       if (!form.email || !/\S+@\S+\.\S+/.test(form.email)) return setError("Enter a valid email address."), false;
       if (!form.mobile || form.mobile.length < 10) return setError("Enter a valid 10-digit mobile number."), false;
+      if (!form.city) return setError("Current city is required."), false;
       if (!form.password || form.password.length < 8) return setError("Password must be at least 8 characters."), false;
       if (form.password !== form.confirmPassword) return setError("Passwords do not match."), false;
     }
@@ -166,7 +167,7 @@ export default function OnboardingPage() {
                   <input value={form.mobile} onChange={(e) => update("mobile", e.target.value)} className={inputBase} placeholder="9999999999" maxLength={10} />
                 </div>
                 <div>
-                  <label className="mb-1 block text-sm font-semibold text-[#0F1111]">Current City</label>
+                  <label className="mb-1 block text-sm font-semibold text-[#0F1111]">Current City *</label>
                   <input value={form.city} onChange={(e) => update("city", e.target.value)} className={inputBase} placeholder="Delhi" />
                 </div>
                 <div>

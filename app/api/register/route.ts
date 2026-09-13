@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
       jobType, locations, salary, skills,
     } = body;
 
-    if (!email || !password || !firstName || !lastName) {
+    if (!email || !password || !firstName || !lastName || !city) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
           create: {
             firstName,
             lastName,
-            city: city || null,
+            city,
             degree: degree || null,
             branch: branch || null,
             college: college || null,
