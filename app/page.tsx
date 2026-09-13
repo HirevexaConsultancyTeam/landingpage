@@ -369,33 +369,7 @@ export default function HomePage() {
       </div>
     </div>
 
-    {/* Co-Founder */}
-    <div className="bg-gradient-to-br from-[#FF9900] to-[#e88d00] rounded-3xl p-7 sm:p-10 text-gray-900 relative overflow-hidden flex flex-col">
-      <div className="absolute inset-0 opacity-[0.06]"
-        style={{ backgroundImage: "radial-gradient(circle at 1px 1px, black 1px, transparent 0)", backgroundSize: "24px 24px" }} />
-      <div className="relative flex-1 flex flex-col">
-        <div className="inline-block bg-black/10 border border-black/15 text-gray-900 text-xs font-bold px-4 py-1.5 rounded-full mb-5 uppercase tracking-wider w-fit">
-          Co-Founder
-        </div>
-        <div className="text-4xl text-black/15 font-serif leading-none mb-3">&ldquo;</div>
-        <p className="text-gray-900 text-sm sm:text-base leading-relaxed mb-3 flex-1">
-          Building HireVexa has been about one thing — making sure no talented fresher gets left behind
-          simply because they didn&apos;t know the right people or didn&apos;t get the right guidance at the right time.
-        </p>
-        <p className="text-gray-800 text-sm leading-relaxed mb-7">
-          We built this platform to be the bridge that every fresher deserves — between where they are
-          today and where they deserve to be. Our commitment is to stay by your side until you get there.
-        </p>
-        <div className="flex items-center gap-4 pt-5 border-t border-black/10">
-          <div className="w-12 h-12 rounded-2xl bg-gray-900 flex items-center justify-center text-white font-bold text-lg flex-shrink-0">N</div>
-          <div>
-            <p className="font-bold text-gray-900">Mr. Nikhil Kumar Sharma</p>
-            <p className="text-gray-900 text-sm font-semibold">Co-Founder</p>
-            <p className="text-gray-800 text-xs mt-0.5">HireVexa Consultancy</p>
-          </div>
-        </div>
-      </div>
-    </div>
+    
 
   </div>
 </section>
