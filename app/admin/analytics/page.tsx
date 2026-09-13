@@ -8,11 +8,12 @@ import {
   Legend,
   CategoryScale,
   LinearScale,
-  BarElement,
+  LineElement,
+  PointElement,
 } from "chart.js";
-import { Doughnut, Bar } from "react-chartjs-2";
+import { Doughnut, Line } from "react-chartjs-2";
 
-ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement);
+ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, LineElement, PointElement);
 
 type Analytics = {
   totalCandidates: number;
@@ -28,10 +29,10 @@ type Analytics = {
     role: string;
     _count: { applications: number };
   }[];
+  registrationTrend: { date: string; count: number }[];
 };
 
 const APP_COLORS = ["#378ADD", "#1D9E75", "#BA7517", "#E24B4A", "#7F77DD", "#D4537E"];
-const CAND_COLORS = ["#378ADD", "#1D9E75", "#888780", "#EF9F27"];
 
 function toLabel(s: string) {
   return s.replace(/_/g, " ").toLowerCase().replace(/^\w/, (c) => c.toUpperCase());
@@ -40,12 +41,24 @@ function toLabel(s: string) {
 export default function AnalyticsPage() {
   const [data, setData] = useState<Analytics | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     fetch("/api/admin/analytics")
       .then((r) => r.json())
-      .then(setData)
-      .catch(() => alert("Failed to load analytics"))
+      .then((d) => {
+        // Guard against a failed/partial response instead of trusting the shape blindly.
+        if (!d || d.error || !Array.isArray(d.registrationTrend)) {
+          console.error("Analytics response missing expected fields:", d);
+          setError(true);
+          return;
+        }
+        setData(d);
+      })
+      .catch((err) => {
+        console.error("Failed to load analytics:", err);
+        setError(true);
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -57,9 +70,18 @@ export default function AnalyticsPage() {
     );
   }
 
-  if (!data) return null;
+  if (error || !data) {
+    return (
+      <div className="flex items-center justify-center py-24 text-gray-400 text-sm text-center px-4">
+        Couldn't load analytics right now. Check the server logs for /api/admin/analytics,
+        or try refreshing.
+      </div>
+    );
+  }
 
-  const maxApps = Math.max(...data.topCompanies.map((j) => j._count.applications));
+  const maxApps = data.topCompanies.length
+    ? Math.max(...data.topCompanies.map((j) => j._count.applications))
+    : 1;
 
   return (
     <div className="space-y-6">
@@ -131,31 +153,26 @@ export default function AnalyticsPage() {
           </div>
         </div>
 
-        {/* Bar — Candidate Status */}
+        {/* Line — Registration trend (last 14 days) */}
         <div className="bg-white rounded-xl border border-gray-100 p-5">
-          <h2 className="text-sm font-semibold text-gray-800 mb-4">Candidate status</h2>
-
-          <div className="flex flex-wrap gap-3 mb-4">
-            {data.candidateStatus.map((item, i) => (
-              <span key={item.status} className="flex items-center gap-1.5 text-xs text-gray-500">
-                <span
-                  className="w-2 h-2 rounded-sm inline-block"
-                  style={{ background: CAND_COLORS[i] }}
-                />
-                {toLabel(item.status)}
-              </span>
-            ))}
-          </div>
+          <h2 className="text-sm font-semibold text-gray-800 mb-4">
+            New registrations (last 14 days)
+          </h2>
 
           <div className="h-52">
-            <Bar
+            <Line
               data={{
-                labels: data.candidateStatus.map((i) => toLabel(i.status)),
+                labels: data.registrationTrend.map((d) =>
+                  new Date(d.date).toLocaleDateString("en-IN", { day: "numeric", month: "short" })
+                ),
                 datasets: [
                   {
-                    data: data.candidateStatus.map((i) => i._count.status),
-                    backgroundColor: CAND_COLORS,
-                    borderRadius: 4,
+                    data: data.registrationTrend.map((d) => d.count),
+                    borderColor: "#378ADD",
+                    backgroundColor: "rgba(55,138,221,0.1)",
+                    fill: true,
+                    tension: 0.35,
+                    pointRadius: 3,
                   },
                 ],
               }}
@@ -164,8 +181,8 @@ export default function AnalyticsPage() {
                 maintainAspectRatio: false,
                 plugins: { legend: { display: false } },
                 scales: {
-                  x: { grid: { display: false }, ticks: { font: { size: 11 }, color: "#9ca3af" } },
-                  y: { grid: { color: "rgba(0,0,0,0.05)" }, ticks: { font: { size: 11 }, color: "#9ca3af" } },
+                  x: { grid: { display: false }, ticks: { font: { size: 10 }, color: "#9ca3af" } },
+                  y: { beginAtZero: true, ticks: { stepSize: 1, font: { size: 11 }, color: "#9ca3af" } },
                 },
               }}
             />
