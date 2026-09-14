@@ -280,6 +280,17 @@ export default function HomePage() {
   const [perPage, setPerPage] = useState(3);
   const [courses, setCourses] = useState<Course[]>([]);
 
+  // Cursor-reactive spotlight for the hero background
+  const [heroSpot, setHeroSpot] = useState({ x: 50, y: 40 });
+
+  const handleHeroMouseMove = (e: React.MouseEvent<HTMLElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    setHeroSpot({
+      x: ((e.clientX - rect.left) / rect.width) * 100,
+      y: ((e.clientY - rect.top) / rect.height) * 100,
+    });
+  };
+
   // Live homepage stats — falls back to sensible defaults until the fetch resolves.
   // Placement rate is intentionally NOT part of this — it's fixed, see STATIC_PLACEMENT_RATE.
   const [liveStats, setLiveStats] = useState({
@@ -386,7 +397,45 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-white">
       {/* ───────────────────── Hero ───────────────────── */}
-      <section className="relative bg-gradient-to-br from-[#1a2332] via-[#232F3E] to-[#2d3f52] text-white overflow-hidden">
+      <section
+        onMouseMove={handleHeroMouseMove}
+        className="relative bg-gradient-to-br from-[#05070c] via-[#0a0e17] to-[#151c2b] text-white overflow-hidden"
+      >
+        <style jsx>{`
+          @keyframes blob {
+            0%,
+            100% {
+              transform: translate(0px, 0px) scale(1);
+            }
+            33% {
+              transform: translate(30px, -40px) scale(1.12);
+            }
+            66% {
+              transform: translate(-24px, 24px) scale(0.92);
+            }
+          }
+          .animate-blob {
+            animation: blob 12s infinite ease-in-out;
+          }
+          .animation-delay-2000 {
+            animation-delay: 2.5s;
+          }
+          .animation-delay-4000 {
+            animation-delay: 5s;
+          }
+          @keyframes draw-swoosh {
+            to {
+              stroke-dashoffset: 0;
+            }
+          }
+          .swoosh-path {
+            stroke-dasharray: 400;
+            stroke-dashoffset: 400;
+            animation: draw-swoosh 1.1s ease-out 0.4s forwards;
+          }
+        `}</style>
+
+        {/* dot grid */}
         <div
           className="absolute inset-0 opacity-[0.04]"
           style={{
@@ -394,6 +443,19 @@ export default function HomePage() {
             backgroundSize: "28px 28px",
           }}
         />
+
+        {/* cursor-reactive spotlight */}
+        <div
+          className="pointer-events-none absolute inset-0 transition-[background] duration-300 ease-out"
+          style={{
+            background: `radial-gradient(600px circle at ${heroSpot.x}% ${heroSpot.y}%, rgba(255,153,0,0.10), transparent 45%)`,
+          }}
+        />
+
+        {/* drifting glow blobs */}
+        <div className="pointer-events-none absolute -top-28 -left-16 w-96 h-96 bg-[#FF9900]/10 rounded-full blur-3xl animate-blob" />
+        <div className="pointer-events-none absolute top-1/3 -right-24 w-[26rem] h-[26rem] bg-[#3b6bff]/10 rounded-full blur-3xl animate-blob animation-delay-2000" />
+        <div className="pointer-events-none absolute -bottom-24 left-1/3 w-80 h-80 bg-[#FF9900]/5 rounded-full blur-3xl animate-blob animation-delay-4000" />
 
         <div className="relative max-w-6xl mx-auto px-4 sm:px-6 py-14 sm:py-20 lg:py-28">
           <div className="flex flex-col lg:flex-row items-center gap-10 lg:gap-16">
@@ -406,7 +468,23 @@ export default function HomePage() {
               <h1 className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold leading-[1.1] mb-5 tracking-tight">
                 Land Your First Job
                 <br />
-                <span className="text-[#FF9900]">With Confidence.</span>
+                <span className="relative inline-block text-[#FF9900]">
+                  with Confidence.
+                  <svg
+                    className="absolute left-0 -bottom-2 w-full h-3 text-[#FF9900]"
+                    viewBox="0 0 300 20"
+                    fill="none"
+                    preserveAspectRatio="none"
+                  >
+                    <path
+                      d="M2 15 Q 80 2, 150 10 T 298 8"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                      strokeLinecap="round"
+                      className="swoosh-path"
+                    />
+                  </svg>
+                </span>
               </h1>
 
               {isLoggedIn ? (
@@ -422,8 +500,9 @@ export default function HomePage() {
                 </p>
               ) : (
                 <p className="text-gray-300 text-base sm:text-lg mb-8 max-w-xl mx-auto lg:mx-0 leading-relaxed">
-                  HireVexa helps freshers bridge the gap between campus and career — with
-                  personalised counselling, resume building, and placement support.
+                  We help students bridge the gap between campus and career —
+                  with verified jobs, skill courses, resume building, and
+                  placement support.
                 </p>
               )}
 
@@ -460,8 +539,13 @@ export default function HomePage() {
             <div className="flex-shrink-0 w-full max-w-xs lg:max-w-sm">
               <div className="relative">
                 <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-6 text-center">
-                  <div className="w-16 h-16 rounded-2xl bg-[#FF9900] flex items-center justify-center mx-auto mb-4 shadow-lg shadow-orange-500/30">
-                    <img src="/logo.png" alt="HireVexa" className="w-10 h-10 object-contain" />
+                  <div className="w-16 h-16 rounded-2xl bg-white flex flex-col items-center justify-center mx-auto mb-4 shadow-lg shadow-orange-500/20">
+                    <span className="text-[#232F3E] font-extrabold text-base leading-none tracking-tight">
+                      HV
+                    </span>
+                    <span className="text-[#232F3E] font-bold text-[6px] tracking-widest mt-0.5">
+                      HIREVEXA
+                    </span>
                   </div>
 
                   <h3 className="font-bold text-lg mb-1">HireVexa Consultancy</h3>
