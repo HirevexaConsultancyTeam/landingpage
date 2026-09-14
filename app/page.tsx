@@ -535,44 +535,43 @@ export default function HomePage() {
               )}
             </div>
 
-            {/* Stats card */}
-            <div className="flex-shrink-0 w-full max-w-xs lg:max-w-sm">
-              <div className="relative">
-                <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-6 text-center">
-                  <div className="w-16 h-16 rounded-2xl bg-white flex flex-col items-center justify-center mx-auto mb-4 shadow-lg shadow-orange-500/20">
-                    <span className="text-[#232F3E] font-extrabold text-base leading-none tracking-tight">
-                      HV
-                    </span>
-                    <span className="text-[#232F3E] font-bold text-[6px] tracking-widest mt-0.5">
-                      HIREVEXA
-                    </span>
-                  </div>
+{/* Stats card */}
+<div className="flex-shrink-0 w-full max-w-xs lg:max-w-sm">
+  <div className="relative">
+    <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-6 text-center">
+      <div className="w-16 h-16 rounded-2xl bg-white flex items-center justify-center mx-auto mb-4 shadow-lg shadow-orange-500/20 overflow-hidden p-2">
+        <img
+          src="/logo.png"
+          alt="HireVexa"
+          className="w-full h-full object-contain"
+        />
+      </div>
 
-                  <h3 className="font-bold text-lg mb-1">HireVexa Consultancy</h3>
+      <h3 className="font-bold text-lg mb-1">HireVexa Consultancy</h3>
 
-                  <p className="text-gray-400 text-xs mb-5">Your career. Our mission.</p>
+      <p className="text-gray-400 text-xs mb-5">Your career. Our mission.</p>
 
-                  <div className="grid grid-cols-2 gap-3 text-left">
-                    {[
-                      { v: `${liveStats.candidatesRegistered}+`, l: "Registered" },
-                      { v: `${STATIC_PLACEMENT_RATE}%`, l: "Success Rate" },
-                      { v: `${liveStats.hiringPartners}+`, l: "Companies" },
-                      { v: "2–3 wks", l: "Avg. Time" },
-                    ].map((s) => (
-                      <div key={s.l} className="bg-white/10 rounded-xl p-3">
-                        <p className="text-[#FF9900] font-bold text-lg leading-none">{s.v}</p>
-                        <p className="text-gray-400 text-xs mt-1">{s.l}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+      <div className="grid grid-cols-2 gap-3 text-left">
+        {[
+          { v: `${liveStats.candidatesRegistered}+`, l: "Registered" },
+          { v: `${STATIC_PLACEMENT_RATE}%`, l: "Success Rate" },
+          { v: `${liveStats.hiringPartners}+`, l: "Companies" },
+          { v: "2–3 wks", l: "Avg. Time" },
+        ].map((s) => (
+          <div key={s.l} className="bg-white/10 rounded-xl p-3">
+            <p className="text-[#FF9900] font-bold text-lg leading-none">{s.v}</p>
+            <p className="text-gray-400 text-xs mt-1">{s.l}</p>
+          </div>
+        ))}
+      </div>
+    </div>
 
-                <div className="absolute -bottom-4 -right-4 bg-emerald-500 text-white text-xs font-bold px-3 py-2 rounded-xl shadow-lg flex items-center gap-1.5">
-                  <CheckCircle size={13} />
-                  Placements Active
-                </div>
-              </div>
-            </div>
+    <div className="absolute -bottom-4 -right-4 bg-emerald-500 text-white text-xs font-bold px-3 py-2 rounded-xl shadow-lg flex items-center gap-1.5">
+      <CheckCircle size={13} />
+      Placements Active
+    </div>
+  </div>
+</div>
           </div>
         </div>
 
