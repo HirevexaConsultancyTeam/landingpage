@@ -1,21 +1,21 @@
-// ┌──────────────────────────────────────────────────────────────────────────┐
-// │  PLACE AT: app/api/courses/[slug]/route.ts                               │
-// │  This is the PUBLIC route. It must NOT import auth.                      │
-// └──────────────────────────────────────────────────────────────────────────┘
 import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { courseAccessBlocked } from "@/lib/access-lock";
 
 interface Params {
   params: Promise<{ slug: string }>;
 }
 
-// GET /api/courses/[slug] — PUBLIC. Powers the sales page.
-//
-// SECURITY: unauthenticated, so it must never return lesson bodies or the
-// videoUrl of a non-preview lesson. Enrolled students get real content from
-// /api/courses/[slug]/content instead.
+// GET /api/courses/[slug]
+// Blocked for everyone except admin while the access lock is on.
+// When unlocked, it is public and never returns lesson videos unless isPreview.
 export async function GET(req: NextRequest, { params }: Params) {
   try {
+    const session = await auth();
+    const blocked = courseAccessBlocked(session);
+    if (blocked) return blocked;
+
     const { slug } = await params;
 
     const course = await prisma.course.findUnique({

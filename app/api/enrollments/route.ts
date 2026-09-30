@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { courseAccessBlocked } from "@/lib/access-lock";
 
 // GET /api/enrollments — my enrolled courses
 export async function GET(req: NextRequest) {
@@ -9,6 +10,9 @@ export async function GET(req: NextRequest) {
     if (!session?.user?.id) {
       return NextResponse.json({ message: "Unauthorized." }, { status: 401 });
     }
+
+    const blocked = courseAccessBlocked(session);
+    if (blocked) return blocked;
 
     const enrollments = await prisma.enrollment.findMany({
       where: { userId: session.user.id },
@@ -42,6 +46,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ message: "Please login to enroll." }, { status: 401 });
     }
 
+    const blocked = courseAccessBlocked(session);
+    if (blocked) return blocked;
+
     const { courseId } = await req.json();
     if (!courseId) {
       return NextResponse.json({ message: "courseId is required." }, { status: 400 });
@@ -56,7 +63,6 @@ export async function POST(req: NextRequest) {
     }
 
     // Security check: block this endpoint for any paid course.
-    // Without this, anyone can POST a paid courseId directly and enroll for free.
     const effectivePrice = course.price - (course.price * course.discount) / 100;
     if (effectivePrice > 0) {
       return NextResponse.json(

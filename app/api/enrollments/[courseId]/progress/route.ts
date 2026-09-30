@@ -2,18 +2,18 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isEnrolled, syncCourseProgress } from "@/lib/progress";
+import { courseAccessBlocked } from "@/lib/access-lock";
 
 // GET /api/enrollments/[courseId]/progress
-//
-// BACKWARD COMPATIBILITY: the old version returned a bare
-// { [lessonId]: true } map, and the current learn page spreads it directly into
-// state. That shape is preserved at the top level, with `modules` and `summary`
-// added alongside — so nothing breaks before the learn page is rewritten.
+// Legacy top-level { [lessonId]: true } map preserved alongside `modules` and `summary`.
 export async function GET(req: Request, { params }: { params: Promise<{ courseId: string }> }) {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ message: "Unauthorized." }, { status: 401 });
   }
+
+  const blocked = courseAccessBlocked(session);
+  if (blocked) return blocked;
 
   const userId = session.user.id;
   const { courseId } = await params;

@@ -1,13 +1,8 @@
-// ============================================================================
-//  DESTINATION: app/api/quizzes/[id]/submit/route.ts
-//  This REPLACES the current file, which has the lesson-complete handler's
-//  code pasted into it (it looks up prisma.lesson.findUnique using the quiz
-//  id as a lessonId — that's the 404 you're seeing: "Lesson not found.").
-// ============================================================================
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { canAccessModule, syncCourseProgress } from "@/lib/progress";
+import { courseAccessBlocked } from "@/lib/access-lock";
 
 const normalise = (s: string) => s.trim().toLowerCase().replace(/\s+/g, " ");
 
@@ -18,15 +13,16 @@ type AnswerValue = number | number[] | string | boolean | null;
  * Body: { attemptId: string, answers: Record<questionId, AnswerValue> }
  *
  * Grades ONLY the questions recorded on the attempt (attempt.servedQuestionIds)
- * — never trusts extra question ids the client might send. Requires the
- * attemptId from GET /api/modules/[moduleId]/quiz, and rejects an attempt that
- * doesn't belong to this user or this quiz, or that was already submitted.
+ * — never trusts extra question ids the client might send.
  */
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ message: "Unauthorized." }, { status: 401 });
   }
+
+  const blocked = courseAccessBlocked(session);
+  if (blocked) return blocked;
 
   const userId = session.user.id;
   const { id: quizId } = await params;

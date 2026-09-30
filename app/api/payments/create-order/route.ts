@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { razorpay, REGISTRATION_FEE } from "@/lib/razorpay";
+import { courseAccessBlocked } from "@/lib/access-lock";
 
 export async function POST(req: NextRequest) {
   try {
@@ -14,6 +15,12 @@ export async function POST(req: NextRequest) {
 
     if (type !== "COURSE" && type !== "REGISTRATION") {
       return NextResponse.json({ message: "Invalid order type." }, { status: 400 });
+    }
+
+    // While the access lock is on, don't sell courses the buyer couldn't open.
+    if (type === "COURSE") {
+      const blocked = courseAccessBlocked(session);
+      if (blocked) return blocked;
     }
 
     let amount: number;

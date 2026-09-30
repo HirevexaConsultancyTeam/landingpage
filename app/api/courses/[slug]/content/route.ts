@@ -1,28 +1,22 @@
-// ┌──────────────────────────────────────────────────────────────────────────┐
-// │  PLACE AT: app/api/courses/[slug]/content/route.ts                       │
-// │  Note the /content/ subfolder. This is the ENROLLED-ONLY route.          │
-// └──────────────────────────────────────────────────────────────────────────┘
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isEnrolled, syncCourseProgress } from "@/lib/progress";
+import { courseAccessBlocked } from "@/lib/access-lock";
 
 interface Params {
   params: Promise<{ slug: string }>;
 }
 
-// GET /api/courses/[slug]/content — ENROLLED ONLY.
-//
-// Full course tree with lesson bodies, but only for modules the student has
-// unlocked. Locked modules return titles and counts so the sidebar can render
-// them greyed out, with no content attached.
-//
-// This is the endpoint the learn page calls.
+// GET /api/courses/[slug]/content — ENROLLED ONLY (and admin-only while locked).
 export async function GET(req: NextRequest, { params }: Params) {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ message: "Unauthorized." }, { status: 401 });
   }
+
+  const blocked = courseAccessBlocked(session);
+  if (blocked) return blocked;
 
   const userId = session.user.id;
   const { slug } = await params;

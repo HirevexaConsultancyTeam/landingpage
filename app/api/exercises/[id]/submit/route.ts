@@ -1,34 +1,23 @@
-// ============================================================================
-//  DESTINATION:  app/api/exercises/[id]/submit/route.ts
-//  RENAME THIS FILE TO:  route.ts
-//
-//  Note the FULL path — three folders: exercises / [id] / submit
-//  A 404 on POST /api/exercises/<id>/submit means this file is not at that
-//  exact path. Restart the dev server after adding it.
-// ============================================================================
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { canAccessModule } from "@/lib/progress";
+import { courseAccessBlocked } from "@/lib/access-lock";
 
 const normalise = (s: string) => s.trim().toLowerCase().replace(/\s+/g, " ");
 
 /**
  * POST /api/exercises/[id]/submit
  * Body: { response: number | number[] | string | boolean | null }
- *
- * Returns whether the answer was right, plus the hint, solution and
- * explanation — all withheld by the content route until this point.
- *
- * CODING drills can't be auto-graded (no Python sandbox on the server), so they
- * come back as `selfAssessed: true` with the reference solution and the student
- * marks their own work.
  */
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ message: "Unauthorized." }, { status: 401 });
   }
+
+  const blocked = courseAccessBlocked(session);
+  if (blocked) return blocked;
 
   const userId = session.user.id;
   const { id: exerciseId } = await params;

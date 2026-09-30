@@ -3,21 +3,18 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { canAccessModule } from "@/lib/progress";
 import { shuffle } from "@/lib/quiz-grading";
+import { courseAccessBlocked } from "@/lib/access-lock";
 
 // GET /api/modules/[id]/quiz
-//
 // Creates the attempt row up front and stores which questions were served.
-// That is what makes sampling safe: grading later runs against this stored list,
-// so a student cannot submit answers for only the three they are sure of.
-//
-// NOTE: this file replaces app/app/api/modules/[id]/quiz/route.ts, which sat one
-// directory too deep and served /app/api/... — the cause of the 404 students hit
-// when opening any module quiz. Delete the old app/app directory.
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ message: "Unauthorized." }, { status: 401 });
   }
+
+  const blocked = courseAccessBlocked(session);
+  if (blocked) return blocked;
 
   const userId = session.user.id;
   const { id: moduleId } = await params;
@@ -29,8 +26,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       access.reason === "NOT_FOUND"
         ? "Module not found."
         : access.reason === "NOT_ENROLLED"
-          ? "You are not enrolled in this course."
-          : "Complete the previous module to unlock this assessment.";
+        ? "You are not enrolled in this course."
+        : "Complete the previous module to unlock this assessment.";
     return NextResponse.json({ message, reason: access.reason }, { status });
   }
 
@@ -42,10 +39,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     return NextResponse.json({ message: "No quiz for this module." }, { status: 404 });
   }
   if (quiz.questions.length === 0) {
-    return NextResponse.json(
-      { message: "This assessment has no questions yet." },
-      { status: 404 }
-    );
+    return NextResponse.json({ message: "This assessment has no questions yet." }, { status: 404 });
   }
 
   const take = quiz.questionsPerAttempt ?? quiz.questions.length;

@@ -1,21 +1,17 @@
-// ============================================================================
-//  DESTINATION:  app/api/lessons/[id]/complete/route.ts
-//  RENAME THIS FILE TO:  route.ts
-//
-//  If you are getting "SyntaxError: Unexpected end of JSON input" on this
-//  endpoint, the OLD version is still in place — it calls req.json() on a
-//  request the learn page sends with no body. This version never parses a body.
-// ============================================================================
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { canAccessModule, syncCourseProgress } from "@/lib/progress";
+import { courseAccessBlocked } from "@/lib/access-lock";
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ message: "Unauthorized." }, { status: 401 });
   }
+
+  const blocked = courseAccessBlocked(session);
+  if (blocked) return blocked;
 
   const userId = session.user.id;
   const { id: lessonId } = await params;
