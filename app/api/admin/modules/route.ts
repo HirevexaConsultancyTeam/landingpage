@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/adminGuard";
+import { contentWriteDenied } from "@/lib/content-guard";
 
 const createModuleSchema = z.object({
   courseId: z.string().min(1, "Course ID is required"),
@@ -32,6 +34,10 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const guard = await requireAdmin();
   if (guard.error) return guard.error;
+
+  const denied = contentWriteDenied(await auth());
+  if (denied) return denied;
+
   try {
     const body = await req.json();
     const parsed = createModuleSchema.safeParse(body);

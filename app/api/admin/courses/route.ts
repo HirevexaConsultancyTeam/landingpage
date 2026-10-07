@@ -2,9 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import slugify from "slugify";
 
+import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { courseSchema } from "@/lib/validations/course";
 import { requireAdmin } from "@/lib/adminGuard";
+import { contentWriteDenied } from "@/lib/content-guard";
 
 export async function GET(req: NextRequest) {
   try {
@@ -50,6 +52,9 @@ export async function POST(req: NextRequest) {
   try {
     const guard = await requireAdmin();
     if (guard.error) return guard.error;
+
+    const denied = contentWriteDenied(await auth());
+    if (denied) return denied;
 
     const body = await req.json();
 

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/adminGuard";
+import { contentWriteDenied } from "@/lib/content-guard";
 
 interface Params { params: Promise<{ id: string }> }
 
@@ -19,6 +21,10 @@ export async function GET(req: NextRequest, { params }: Params) {
 export async function POST(req: NextRequest, { params }: Params) {
   const guard = await requireAdmin();
   if (guard.error) return guard.error;
+
+  const denied = contentWriteDenied(await auth());
+  if (denied) return denied;
+
   const { id: moduleId } = await params;
   const { title, passScore } = await req.json();
 

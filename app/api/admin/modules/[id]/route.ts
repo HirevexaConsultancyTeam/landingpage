@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/adminGuard";
+import { contentWriteDenied } from "@/lib/content-guard";
 
 interface Params { params: Promise<{ id: string }> }
 
@@ -32,6 +34,10 @@ export async function GET(req: NextRequest, { params }: Params) {
 export async function PATCH(req: NextRequest, { params }: Params) {
   const guard = await requireAdmin();
   if (guard.error) return guard.error;
+
+  const denied = contentWriteDenied(await auth());
+  if (denied) return denied;
+
   try {
     const { id } = await params;
     const body = await req.json();
@@ -69,6 +75,10 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 export async function DELETE(req: NextRequest, { params }: Params) {
   const guard = await requireAdmin();
   if (guard.error) return guard.error;
+
+  const denied = contentWriteDenied(await auth());
+  if (denied) return denied;
+
   try {
     const { id } = await params;
     const module = await prisma.courseModule.findUnique({ where: { id }, include: { _count: { select: { lessons: true } } } });

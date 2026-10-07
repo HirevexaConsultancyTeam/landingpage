@@ -1,14 +1,12 @@
-// ============================================================================
-//  DESTINATION:  app/api/admin/courses/[id]/route.ts
-//  RENAME THIS FILE TO:  route.ts
-// ============================================================================
 import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import slugify from "slugify";
 
+import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { courseSchema } from "@/lib/validations/course";
 import { requireAdmin } from "@/lib/adminGuard";
+import { contentWriteDenied } from "@/lib/content-guard";
 
 interface Params { params: Promise<{ id: string }> }
 
@@ -51,24 +49,21 @@ export async function GET(req: NextRequest, { params }: Params) {
  * PATCH /api/admin/courses/[id]
  *
  * Validates with `courseSchema.partial()` so only the fields actually sent are
- * checked. The previous version ran the full create schema on every request,
- * which meant a publish toggle sending `{ published: false }` was rejected for
- * a description it never touched — and courses whose descriptions predate the
- * 20-character rule could not be edited at all.
- *
- * Rules still apply to whatever IS sent: a 5-character description still fails.
+ * checked. Rules still apply to whatever IS sent.
  */
 export async function PATCH(req: NextRequest, { params }: Params) {
   try {
     const guard = await requireAdmin();
     if (guard.error) return guard.error;
 
+    const denied = contentWriteDenied(await auth());
+    if (denied) return denied;
+
     const { id } = await params;
     const body = await req.json();
 
-    // Normalise only the keys present. Defaulting absent keys (the old
-    // `body.featured ?? false`) silently unfeatured a course on any partial
-    // update that didn't mention it.
+    // Normalise only the keys present. Defaulting absent keys silently
+    // unfeatured a course on any partial update that didn't mention it.
     const normalized: Record<string, unknown> = { ...body };
 
     if (body.slug !== undefined || body.title !== undefined) {
@@ -175,6 +170,9 @@ export async function DELETE(req: NextRequest, { params }: Params) {
   try {
     const guard = await requireAdmin();
     if (guard.error) return guard.error;
+
+    const denied = contentWriteDenied(await auth());
+    if (denied) return denied;
 
     const { id } = await params;
 
